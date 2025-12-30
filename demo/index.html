@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MagicDrag Demo</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            padding: 20px;
+        }
+        .draggable {
+            width: 100px;
+            height: 100px;
+            background-color: #3498db;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: grab;
+            border-radius: 8px;
+            user-select: none;
+        }
+        .draggable:active {
+            cursor: grabbing;
+        }
+        #status {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #f0f0f0;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <h1>MagicDrag 跨 Tab 拖拽演示</h1>
+    <div id="draggable" class="draggable">拖拽我</div>
+    <div id="status">状态: 等待中</div>
+
+    <script type="module">
+        import { MagicDrag } from '../dist/index.mjs';
+
+        // 定义用户数据类型
+        interface UserData {
+            id: number;
+            name: string;
+        }
+
+        // 创建具体的 MagicDrag 实现
+        class UserCardDrag extends MagicDrag<UserData, string> {
+            static serialize<T, U>(data: T): U {
+                return JSON.stringify(data) as U;
+            }
+
+            static parse<U, T>(serialized: U): T {
+                return JSON.parse(serialized as string) as T;
+            }
+
+            static render<U>(serialized: U): HTMLElement {
+                const data = this.parse<U, UserData>(serialized);
+                const card = document.createElement('div');
+                card.className = 'draggable';
+                card.textContent = data.name;
+                card.style.backgroundColor = '#e74c3c';
+                return card;
+            }
+        }
+
+        // 初始化拖拽
+        const element = document.getElementById('draggable');
+        const statusEl = document.getElementById('status');
+
+        if (element) {
+            const drag = new UserCardDrag(element, () => ({
+                id: Date.now(),
+                name: '用户 ' + Math.floor(Math.random() * 1000)
+            }));
+
+            statusEl.textContent = '状态: 已初始化，点击并拖拽到另一个 Tab';
+        }
+
+        // 绑定跨 Tab 监听
+        UserCardDrag.bind();
+    </script>
+</body>
+</html>
