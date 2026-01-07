@@ -1,0 +1,1 @@
+{"root":["./src/main.ts","./src/sum.ts","./src/__tests__/magic-drag.test.ts","./src/__tests__/sum.test.ts","./src/magic-drag/MagicDrag.ts","./src/magic-drag/MagicDragManager.ts","./src/magic-drag/index.ts","./src/magic-drag/types.ts","./vite.config.ts","./jest.config.ts"],"version":"5.6.3"}
