@@ -1019,10 +1019,10 @@
   dependencies:
     "@sinonjs/commons" "^3.0.1"
 
-"@system-ui-js/development-base@^0.1.2":
-  version "0.1.2"
-  resolved "https://registry.yarnpkg.com/@system-ui-js/development-base/-/development-base-0.1.2.tgz#9896533146d4a0b568dc5746cac530f8b910a16d"
-  integrity sha512-c6hP8g7erZk1g0v3dn0zfdLcSRFfSBYzcrdR1bDyjCOf5ZVVJ8X991fucwwWRO6R4RJo3At8tcOqsDpPF4n+Mg==
+"@system-ui-js/development-base@^0.1.3":
+  version "0.1.3"
+  resolved "https://registry.yarnpkg.com/@system-ui-js/development-base/-/development-base-0.1.3.tgz#d40977a77344811928d1839c317f77cd5a2ed5f3"
+  integrity sha512-/SPkWsJGi2bfD5CF5TDvpm0swfEp4TYMaBrtYuGP2dZXLmE8S+fr8ClEjdbwvNIXHzQyt96KDBvEHdLNSOJipg==
 
 "@system-ui-js/multi-drag@^0.2.6":
   version "0.2.6"
