@@ -11,7 +11,12 @@ class DemoCard extends MagicDrag<CardData> {
   private content: string
   private color: string
 
-  constructor(element: HTMLElement, title: string, content: string, color: string) {
+  constructor(
+    element: HTMLElement,
+    title: string,
+    content: string,
+    color: string
+  ) {
     super(element)
     this.title = title
     this.content = content
@@ -28,7 +33,7 @@ class DemoCard extends MagicDrag<CardData> {
     return this.createSerializedData({
       title: this.title,
       content: this.content,
-      color: this.color,
+      color: this.color
     })
   }
 
@@ -57,8 +62,19 @@ class DemoCard extends MagicDrag<CardData> {
       cursor: 'grab',
       userSelect: 'none',
       boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-      transition: 'box-shadow 0.2s',
+      transition: 'box-shadow 0.2s'
     })
+  }
+
+  protected onAbort(): void {
+    this.element.style.transition = 'transform 0.15s ease-out, opacity 0.15s'
+    this.element.style.transform = 'scale(1.05)'
+    this.element.style.opacity = '0.7'
+
+    setTimeout(() => {
+      this.element.style.transform = 'scale(1)'
+      this.element.style.opacity = '1'
+    }, 150)
   }
 }
 
@@ -106,9 +122,27 @@ if (app) {
 
   if (container) {
     const cards = [
-      { title: 'Card 1', content: 'Drag me to another tab!', color: '#6366f1', x: 50, y: 50 },
-      { title: 'Card 2', content: 'I can travel between tabs', color: '#ec4899', x: 300, y: 50 },
-      { title: 'Card 3', content: 'Multi-tab drag & drop', color: '#14b8a6', x: 550, y: 50 },
+      {
+        title: 'Card 1',
+        content: 'Drag me to another tab!',
+        color: '#6366f1',
+        x: 50,
+        y: 50
+      },
+      {
+        title: 'Card 2',
+        content: 'I can travel between tabs',
+        color: '#ec4899',
+        x: 300,
+        y: 50
+      },
+      {
+        title: 'Card 3',
+        content: 'Multi-tab drag & drop',
+        color: '#14b8a6',
+        x: 550,
+        y: 50
+      }
     ]
 
     cards.forEach(({ title, content, color, x, y }) => {

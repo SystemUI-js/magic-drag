@@ -21,12 +21,14 @@ export enum MagicDragMessageType {
   DRAG_LEAVE_TAB = 'magic_drag_leave_tab',
   /** 在目标 Tab 中放置 */
   DRAG_DROP = 'magic_drag_drop',
+  /** 拖拽中止（拖到所有 Tab 外松手） */
+  DRAG_ABORT = 'magic_drag_abort',
   /** Tab 激活通知 */
   TAB_ACTIVATED = 'magic_drag_tab_activated',
   /** 心跳检测 */
   HEARTBEAT = 'magic_drag_heartbeat',
   /** 心跳响应 */
-  HEARTBEAT_ACK = 'magic_drag_heartbeat_ack',
+  HEARTBEAT_ACK = 'magic_drag_heartbeat_ack'
 }
 
 /**
@@ -167,11 +169,12 @@ export interface PreviewInfo {
   createdAt: number
 }
 
-export type MagicDragConstructor<T extends MagicDragBase = MagicDragBase> = new (
-  element: HTMLElement,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  ...args: any[]
-) => T
+export type MagicDragConstructor<T extends MagicDragBase = MagicDragBase> =
+  new (
+    element: HTMLElement,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ...args: any[]
+  ) => T
 
 /**
  * MagicDrag 基类接口
@@ -193,7 +196,9 @@ export interface MagicDragBase {
 /**
  * 事件监听器类型
  */
-export type MagicDragEventListener<T = unknown> = (message: MagicDragMessage<T>) => void
+export type MagicDragEventListener<T = unknown> = (
+  message: MagicDragMessage<T>
+) => void
 
 /**
  * 事件类型映射
@@ -205,5 +210,6 @@ export interface MagicDragEventMap {
   [MagicDragMessageType.DRAG_ENTER_TAB]: MagicDragMessage
   [MagicDragMessageType.DRAG_LEAVE_TAB]: MagicDragMessage
   [MagicDragMessageType.DRAG_DROP]: MagicDragMessage
+  [MagicDragMessageType.DRAG_ABORT]: MagicDragMessage
   [MagicDragMessageType.TAB_ACTIVATED]: MagicDragMessage
 }

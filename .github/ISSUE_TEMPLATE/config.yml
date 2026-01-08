@@ -1,0 +1,9 @@
+blank_issues_enabled: false
+
+contact_links:
+  - name: Question or Discussion
+    url: https://github.com/SystemUI-js/magic-drag/discussions
+    about: 'Please use GitHub Discussions for questions or discussions.'
+  - name: Read the Documentation
+    url: https://github.com/SystemUI-js/magic-drag
+    about: 'Please check our documentation before submitting a bug.'
