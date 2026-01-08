@@ -8,7 +8,7 @@ import type {
   PreviewInfo,
   ScreenPosition,
   SerializedData,
-  TabInfo,
+  TabInfo
 } from './types'
 import { MagicDragMessageType } from './types'
 
@@ -19,7 +19,10 @@ const DEFAULT_PREVIEW_Z_INDEX = 9999
 const DEFAULT_PREVIEW_OPACITY = 0.7
 
 function generateUUID(): string {
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+  if (
+    typeof crypto !== 'undefined' &&
+    typeof crypto.randomUUID === 'function'
+  ) {
     return crypto.randomUUID()
   }
 
@@ -47,7 +50,7 @@ export class MagicDragManager {
     sourceTabId: null,
     activeTabId: null,
     serializedData: null,
-    lastScreenPosition: null,
+    lastScreenPosition: null
   }
 
   private previewInfo: PreviewInfo | null = null
@@ -59,8 +62,9 @@ export class MagicDragManager {
     this.options = {
       channelName: options.channelName ?? DEFAULT_CHANNEL_NAME,
       previewContainer: options.previewContainer ?? document.body,
-      heartbeatInterval: options.heartbeatInterval ?? DEFAULT_HEARTBEAT_INTERVAL,
-      tabTimeout: options.tabTimeout ?? DEFAULT_TAB_TIMEOUT,
+      heartbeatInterval:
+        options.heartbeatInterval ?? DEFAULT_HEARTBEAT_INTERVAL,
+      tabTimeout: options.tabTimeout ?? DEFAULT_TAB_TIMEOUT
     }
 
     this.channel = new BroadcastChannel(this.options.channelName)
@@ -115,10 +119,12 @@ export class MagicDragManager {
     )
   }
 
-  broadcastMessage<T = unknown>(message: Omit<MagicDragMessage<T>, 'sourceTabId'>): void {
+  broadcastMessage<T = unknown>(
+    message: Omit<MagicDragMessage<T>, 'sourceTabId'>
+  ): void {
     const fullMessage: MagicDragMessage<T> = {
       ...message,
-      sourceTabId: this.tabId,
+      sourceTabId: this.tabId
     }
     this.channel.postMessage(fullMessage)
   }
@@ -130,7 +136,7 @@ export class MagicDragManager {
       sourceTabId: this.tabId,
       activeTabId: null,
       serializedData,
-      lastScreenPosition: null,
+      lastScreenPosition: null
     }
 
     this.broadcastMessage({
@@ -138,15 +144,15 @@ export class MagicDragManager {
       instanceId,
       payload: {
         serializedData,
-        timestamp: Date.now(),
-      },
+        timestamp: Date.now()
+      }
     })
   }
 
   notifyDragMove(
     instanceId: string,
     screenPosition: ScreenPosition,
-    serializedData: SerializedData,
+    serializedData: SerializedData
   ): void {
     this.dragState.lastScreenPosition = screenPosition
     this.dragState.serializedData = serializedData
@@ -157,8 +163,8 @@ export class MagicDragManager {
       payload: {
         serializedData,
         screenPosition,
-        timestamp: Date.now(),
-      },
+        timestamp: Date.now()
+      }
     })
   }
 
@@ -170,8 +176,8 @@ export class MagicDragManager {
       instanceId,
       payload: {
         serializedData,
-        timestamp: Date.now(),
-      },
+        timestamp: Date.now()
+      }
     })
 
     if (!wasExternalDrag) {
@@ -179,15 +185,33 @@ export class MagicDragManager {
     }
   }
 
-  notifyDragDrop(instanceId: string, serializedData: SerializedData, targetTabId: string): void {
+  notifyDragDrop(
+    instanceId: string,
+    serializedData: SerializedData,
+    targetTabId: string
+  ): void {
     this.broadcastMessage({
       type: MagicDragMessageType.DRAG_DROP,
       instanceId,
       targetTabId,
       payload: {
         serializedData,
-        timestamp: Date.now(),
-      },
+        timestamp: Date.now()
+      }
+    })
+
+    this.resetDragState()
+    this.removePreview()
+  }
+
+  notifyDragAbort(instanceId: string, serializedData: SerializedData): void {
+    this.broadcastMessage({
+      type: MagicDragMessageType.DRAG_ABORT,
+      instanceId,
+      payload: {
+        serializedData,
+        timestamp: Date.now()
+      }
     })
 
     this.resetDragState()
@@ -234,6 +258,10 @@ export class MagicDragManager {
         this.handleExternalDragDrop(message)
         break
 
+      case MagicDragMessageType.DRAG_ABORT:
+        this.handleExternalDragAbort(message)
+        break
+
       case MagicDragMessageType.TAB_ACTIVATED:
         this.handleTabActivated(message)
         break
@@ -255,7 +283,7 @@ export class MagicDragManager {
       sourceTabId: message.sourceTabId,
       activeTabId: null,
       serializedData: message.payload.serializedData ?? null,
-      lastScreenPosition: message.payload.screenPosition ?? null,
+      lastScreenPosition: message.payload.screenPosition ?? null
     }
 
     this.pendingExternalDrag = message
@@ -279,8 +307,8 @@ export class MagicDragManager {
         targetTabId: this.tabId,
         payload: {
           serializedData: this.dragState.serializedData ?? undefined,
-          timestamp: Date.now(),
-        },
+          timestamp: Date.now()
+        }
       })
 
       if (!this.previewInfo && this.dragState.serializedData) {
@@ -289,7 +317,10 @@ export class MagicDragManager {
     }
 
     if (this.previewInfo && screenPosition) {
-      this.updatePreviewPosition(screenPosition, this.dragState.serializedData?.dragOffset)
+      this.updatePreviewPosition(
+        screenPosition,
+        this.dragState.serializedData?.dragOffset
+      )
     }
   }
 
@@ -300,11 +331,25 @@ export class MagicDragManager {
     }
   }
 
+  private handleExternalDragAbort(message: MagicDragMessage): void {
+    if (this.dragState.sourceTabId === message.sourceTabId) {
+      this.resetDragState()
+      this.removePreview()
+    }
+  }
+
   private handleExternalDragEnterTab(message: MagicDragMessage): void {
     if (message.sourceTabId === this.dragState.sourceTabId) {
       this.dragState.activeTabId = this.tabId
-      if (!this.previewInfo && this.dragState.serializedData && this.dragState.lastScreenPosition) {
-        this.createPreview(this.dragState.lastScreenPosition, this.dragState.serializedData)
+      if (
+        !this.previewInfo &&
+        this.dragState.serializedData &&
+        this.dragState.lastScreenPosition
+      ) {
+        this.createPreview(
+          this.dragState.lastScreenPosition,
+          this.dragState.serializedData
+        )
       }
     }
   }
@@ -323,7 +368,12 @@ export class MagicDragManager {
     const viewportWidth = window.innerWidth
     const viewportHeight = window.innerHeight
 
-    return clientX >= 0 && clientX <= viewportWidth && clientY >= 0 && clientY <= viewportHeight
+    return (
+      clientX >= 0 &&
+      clientX <= viewportWidth &&
+      clientY >= 0 &&
+      clientY <= viewportHeight
+    )
   }
 
   private handleExternalDragDrop(message: MagicDragMessage): void {
@@ -336,15 +386,18 @@ export class MagicDragManager {
   }
 
   private handleTabActivated(message: MagicDragMessage): void {
-    if (this.dragState.isDragging && this.dragState.sourceTabId === this.tabId) {
+    if (
+      this.dragState.isDragging &&
+      this.dragState.sourceTabId === this.tabId
+    ) {
       this.broadcastMessage({
         type: MagicDragMessageType.DRAG_LEAVE_TAB,
         instanceId: this.dragState.draggingInstanceId ?? '',
         targetTabId: message.sourceTabId,
         payload: {
           serializedData: this.dragState.serializedData ?? undefined,
-          timestamp: Date.now(),
-        },
+          timestamp: Date.now()
+        }
       })
     }
   }
@@ -355,8 +408,8 @@ export class MagicDragManager {
       instanceId: '',
       targetTabId: message.sourceTabId,
       payload: {
-        timestamp: Date.now(),
-      },
+        timestamp: Date.now()
+      }
     })
   }
 
@@ -365,7 +418,9 @@ export class MagicDragManager {
   }
 
   private setupTabActivationListener(): void {
-    const activationHandler = (event: MouseEvent | TouchEvent | PointerEvent) => {
+    const activationHandler = (
+      event: MouseEvent | TouchEvent | PointerEvent
+    ) => {
       if (!this.isActivated) {
         this.isActivated = true
         this.onTabActivated(event)
@@ -378,7 +433,9 @@ export class MagicDragManager {
 
     document.addEventListener('mousemove', activationHandler, { passive: true })
     document.addEventListener('touchmove', activationHandler, { passive: true })
-    document.addEventListener('pointermove', activationHandler, { passive: true })
+    document.addEventListener('pointermove', activationHandler, {
+      passive: true
+    })
 
     document.addEventListener('visibilitychange', () => {
       if (document.hidden) {
@@ -394,8 +451,8 @@ export class MagicDragManager {
       type: MagicDragMessageType.TAB_ACTIVATED,
       instanceId: '',
       payload: {
-        timestamp: Date.now(),
-      },
+        timestamp: Date.now()
+      }
     })
 
     if (
@@ -407,11 +464,16 @@ export class MagicDragManager {
     }
   }
 
-  private createPreview(screenPosition: ScreenPosition, serializedData: SerializedData): void {
+  private createPreview(
+    screenPosition: ScreenPosition,
+    serializedData: SerializedData
+  ): void {
     const Constructor = this.classRegistry.get(serializedData.className)
 
     if (!Constructor) {
-      console.warn(`[MagicDragManager] Unknown class: ${serializedData.className}`)
+      console.warn(
+        `[MagicDragManager] Unknown class: ${serializedData.className}`
+      )
       return
     }
 
@@ -432,7 +494,7 @@ export class MagicDragManager {
     this.previewInfo = {
       element: previewElement,
       instanceId: serializedData.instanceId,
-      createdAt: Date.now(),
+      createdAt: Date.now()
     }
 
     this.updatePreviewPosition(screenPosition, serializedData.dragOffset)
@@ -440,7 +502,9 @@ export class MagicDragManager {
     this.registerInstance(previewInstance)
   }
 
-  private createPreviewFromExternalDrag(event: MouseEvent | TouchEvent | PointerEvent): void {
+  private createPreviewFromExternalDrag(
+    event: MouseEvent | TouchEvent | PointerEvent
+  ): void {
     if (!this.dragState.serializedData) {
       return
     }
@@ -449,7 +513,9 @@ export class MagicDragManager {
     this.createPreview(position, this.dragState.serializedData)
   }
 
-  private getEventScreenPosition(event: MouseEvent | TouchEvent | PointerEvent): ScreenPosition {
+  private getEventScreenPosition(
+    event: MouseEvent | TouchEvent | PointerEvent
+  ): ScreenPosition {
     if ('touches' in event && event.touches.length > 0) {
       const touch = event.touches[0]
       return { screenX: touch?.screenX ?? 0, screenY: touch?.screenY ?? 0 }
@@ -462,7 +528,10 @@ export class MagicDragManager {
     return { screenX: 0, screenY: 0 }
   }
 
-  private updatePreviewPosition(screenPosition: ScreenPosition, dragOffset?: DragOffset): void {
+  private updatePreviewPosition(
+    screenPosition: ScreenPosition,
+    dragOffset?: DragOffset
+  ): void {
     if (!this.previewInfo) {
       return
     }
@@ -492,15 +561,22 @@ export class MagicDragManager {
     this.previewInfo = null
   }
 
-  private createInstanceFromSerialized(serializedData: SerializedData): MagicDragBase | null {
+  private createInstanceFromSerialized(
+    serializedData: SerializedData
+  ): MagicDragBase | null {
     const Constructor = this.classRegistry.get(serializedData.className)
 
     if (!Constructor) {
-      console.warn(`[MagicDragManager] Unknown class: ${serializedData.className}`)
+      console.warn(
+        `[MagicDragManager] Unknown class: ${serializedData.className}`
+      )
       return null
     }
 
-    if (this.previewInfo && this.previewInfo.instanceId === serializedData.instanceId) {
+    if (
+      this.previewInfo &&
+      this.previewInfo.instanceId === serializedData.instanceId
+    ) {
       const existingInstance = this.instances.get(serializedData.instanceId)
       if (existingInstance) {
         this.previewInfo.element.style.opacity = '1'
@@ -527,7 +603,7 @@ export class MagicDragManager {
       sourceTabId: null,
       activeTabId: null,
       serializedData: null,
-      lastScreenPosition: null,
+      lastScreenPosition: null
     }
     this.pendingExternalDrag = null
   }
@@ -536,7 +612,7 @@ export class MagicDragManager {
     this.knownTabs.set(tabId, {
       tabId,
       lastActiveTime: Date.now(),
-      isOnline: true,
+      isOnline: true
     })
   }
 
@@ -546,8 +622,8 @@ export class MagicDragManager {
         type: MagicDragMessageType.HEARTBEAT,
         instanceId: '',
         payload: {
-          timestamp: Date.now(),
-        },
+          timestamp: Date.now()
+        }
       })
 
       this.cleanupOfflineTabs()

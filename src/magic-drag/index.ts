@@ -14,5 +14,5 @@ export {
   type PreviewInfo,
   type ScreenPosition,
   type SerializedData,
-  type TabInfo,
+  type TabInfo
 } from './types'

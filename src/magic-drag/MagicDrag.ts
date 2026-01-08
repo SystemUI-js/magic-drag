@@ -1,6 +1,16 @@
-import { Drag, DragOperationType, defaultGetPose, type Pose } from '@system-ui-js/multi-drag'
+import {
+  Drag,
+  DragOperationType,
+  defaultGetPose,
+  type Pose
+} from '@system-ui-js/multi-drag'
 import { MagicDragManager } from './MagicDragManager'
-import type { DragOffset, MagicDragOptions, ScreenPosition, SerializedData } from './types'
+import type {
+  DragOffset,
+  MagicDragOptions,
+  ScreenPosition,
+  SerializedData
+} from './types'
 
 /**
  * 生成 UUID
@@ -57,11 +67,11 @@ export abstract class MagicDrag<T = unknown> {
     this.options = options
     this.manager = MagicDragManager.getInstance({
       channelName: options.channelName,
-      previewContainer: options.previewContainer,
+      previewContainer: options.previewContainer
     })
 
     this.drag = new Drag(element, {
-      inertial: options.inertial ?? false,
+      inertial: options.inertial ?? false
     })
 
     this.setupDragEvents()
@@ -84,7 +94,7 @@ export abstract class MagicDrag<T = unknown> {
       className: this.getClassName(),
       pose: this.getCurrentPose(),
       customData,
-      dragOffset: this.dragOffset,
+      dragOffset: this.dragOffset
     }
   }
 
@@ -108,15 +118,21 @@ export abstract class MagicDrag<T = unknown> {
     this.isHidden = false
 
     const firstFinger = fingers[0]
-    if (firstFinger && typeof firstFinger === 'object' && 'getLastOperation' in firstFinger) {
+    if (
+      firstFinger &&
+      typeof firstFinger === 'object' &&
+      'getLastOperation' in firstFinger
+    ) {
       const lastStart = (
-        firstFinger as { getLastOperation?: () => { point: { x: number; y: number } } }
+        firstFinger as {
+          getLastOperation?: () => { point: { x: number; y: number } }
+        }
       )?.getLastOperation?.()
       if (lastStart?.point) {
         const rect = this.element.getBoundingClientRect()
         this.dragOffset = {
           x: lastStart.point.x - rect.left,
-          y: lastStart.point.y - rect.top,
+          y: lastStart.point.y - rect.top
         }
       }
     }
@@ -158,13 +174,32 @@ export abstract class MagicDrag<T = unknown> {
     const serializedData = this.serialize()
     const dragState = this.manager.getDragState()
 
-    if (this.hasLeftTab && dragState.activeTabId && dragState.activeTabId !== this.manager.tabId) {
-      this.manager.notifyDragDrop(this.instanceId, serializedData, dragState.activeTabId)
+    if (
+      this.hasLeftTab &&
+      dragState.activeTabId &&
+      dragState.activeTabId !== this.manager.tabId
+    ) {
+      this.manager.notifyDragDrop(
+        this.instanceId,
+        serializedData,
+        dragState.activeTabId
+      )
+      this.isDragging = false
+      this.hasLeftTab = false
       this.destroy()
-    } else {
-      this.manager.notifyDragEnd(this.instanceId, serializedData)
+      return
     }
 
+    if (this.hasLeftTab && !dragState.activeTabId) {
+      this.manager.notifyDragAbort(this.instanceId, serializedData)
+      this.isDragging = false
+      this.hasLeftTab = false
+      this.show()
+      this.onAbort()
+      return
+    }
+
+    this.manager.notifyDragEnd(this.instanceId, serializedData)
     this.isDragging = false
     this.hasLeftTab = false
 
@@ -177,7 +212,7 @@ export abstract class MagicDrag<T = unknown> {
     const rect = this.element.getBoundingClientRect()
     return {
       screenX: window.screenX + rect.left + rect.width / 2,
-      screenY: window.screenY + rect.top + rect.height / 2,
+      screenY: window.screenY + rect.top + rect.height / 2
     }
   }
 
@@ -203,6 +238,8 @@ export abstract class MagicDrag<T = unknown> {
   protected onDragMove(_screenPosition: ScreenPosition): void {}
 
   protected onDragEnd(): void {}
+
+  protected onAbort(): void {}
 
   protected onLeaveTab(): void {
     this.element.style.opacity = '0.3'

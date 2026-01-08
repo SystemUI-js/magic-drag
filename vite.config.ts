@@ -6,5 +6,5 @@ export default defineConfig({
     port: 5273,
     open: true,
     host: '0.0.0.0'
-  },
+  }
 })

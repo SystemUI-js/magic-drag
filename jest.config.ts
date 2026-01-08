@@ -1,4 +1,4 @@
-import type {Config} from 'jest'
+import type { Config } from 'jest'
 
 const config: Config = {
   preset: 'ts-jest',
@@ -6,12 +6,9 @@ const config: Config = {
   roots: ['<rootDir>/src'],
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json'],
   transform: {
-    '^.+\\.(ts|tsx)$': ['ts-jest', { tsconfig: 'tsconfig.json' }],
+    '^.+\\.(ts|tsx)$': ['ts-jest', { tsconfig: 'tsconfig.json' }]
   },
-  collectCoverageFrom: [
-    'src/**/*.{ts,tsx}',
-    '!src/main.ts',
-  ],
+  collectCoverageFrom: ['src/**/*.{ts,tsx}', '!src/main.ts']
 }
 
 export default config

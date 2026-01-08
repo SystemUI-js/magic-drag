@@ -1,0 +1,106 @@
+name: 'Bug Report'
+description: Submit a bug report to help us improve
+title: '[Bug]: '
+labels: ['bug']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to fill out this report! Please describe the issue in as much detail as possible.
+  - type: textarea
+    id: description
+    attributes:
+      label: Describe the bug
+      description: A clear and concise description of what the bug is.
+      placeholder: 'I tried to do... and the result... something went wrong.'
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: To Reproduce
+      description: Steps to reproduce the behavior.
+      placeholder: |
+        1. Go to '...'
+        2. Click on '....'
+        3. Scroll down to '....'
+        4. Error appears '...'
+    validations:
+      required: true
+  - type: textarea
+    id: expected-behavior
+    attributes:
+      label: Expected behavior
+      description: A clear and concise description of what you expected to happen.
+      placeholder: 'I expected... to happen.'
+    validations:
+      required: true
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots
+      description: If applicable, add screenshots. You can drag & drop or paste images here.
+    validations:
+      required: false
+  - type: markdown
+    attributes:
+      value: '### Desktop Environment'
+  - type: input
+    id: os-desktop
+    attributes:
+      label: OS
+      placeholder: 'e.g. Windows 11 / macOS 13.0'
+    validations:
+      required: false
+  - type: input
+    id: browser-desktop
+    attributes:
+      label: Browser
+      placeholder: 'e.g. Chrome, Safari, Edge'
+    validations:
+      required: false
+  - type: input
+    id: browser-version-desktop
+    attributes:
+      label: Version
+      placeholder: 'e.g. 108.0.5359.125'
+    validations:
+      required: false
+  - type: markdown
+    attributes:
+      value: '### Smartphone Environment'
+  - type: input
+    id: device-mobile
+    attributes:
+      label: Device
+      placeholder: 'e.g. iPhone 14 Pro / Google Pixel 7'
+    validations:
+      required: false
+  - type: input
+    id: os-mobile
+    attributes:
+      label: OS
+      placeholder: 'e.g. iOS 16.2 / Android 13'
+    validations:
+      required: false
+  - type: input
+    id: browser-mobile
+    attributes:
+      label: Browser
+      placeholder: 'e.g. Safari, Chrome, Stock Browser'
+    validations:
+      required: false
+  - type: input
+    id: browser-version-mobile
+    attributes:
+      label: Version
+      placeholder: 'e.g. 22'
+    validations:
+      required: false
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional context
+      description: Add any other context about the problem here.
+    validations:
+      required: false

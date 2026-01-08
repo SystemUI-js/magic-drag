@@ -1,45 +1,104 @@
-// ESLint Flat Config (ESLint v9) — CommonJS format so it works without "type":"module"
-/** @type {import('eslint').Linter.FlatConfig[]} */
-const config = []
+import js from '@eslint/js'
+import tseslint from 'typescript-eslint'
+import jsxA11y from 'eslint-plugin-jsx-a11y'
+import sonarjs from 'eslint-plugin-sonarjs'
+import prettierPlugin from 'eslint-plugin-prettier'
+import eslintConfigPrettier from 'eslint-config-prettier'
+import globals from 'globals'
 
-const js = require('@eslint/js')
-const tseslint = require('@typescript-eslint/eslint-plugin')
-const tsparser = require('@typescript-eslint/parser')
+const baseIgnores = [
+  '**/*.cjs',
+  '**/.history/**',
+  'vite.config.ts',
+  'setupTests.ts'
+]
 
-config.push(
+const projectIgnores = [
+  'dist',
+  'coverage',
+  'node_modules',
+  'playwright-report',
+  'test-results'
+]
+
+const testFilePatterns = [
+  '**/*.test.ts',
+  '**/*.test.tsx',
+  '**/*.test.js',
+  '**/*.test.jsx',
+  '**/*.spec.ts',
+  '**/*.spec.tsx',
+  '**/*.spec.js',
+  '**/*.spec.jsx',
+  'tests/**/*.{ts,tsx,js,jsx}',
+  'src/**/__tests__/**/*.{ts,tsx,js,jsx}'
+]
+
+const jsxA11yFlat = {
+  name: 'jsx-a11y/recommended',
+  plugins: { 'jsx-a11y': jsxA11y },
+  languageOptions: {
+    parserOptions: {
+      ecmaFeatures: { jsx: true }
+    }
+  },
+  rules: jsxA11y.configs.recommended.rules
+}
+
+export default [
   {
+    name: 'base/ignores',
+    ignores: baseIgnores
+  },
+  {
+    name: 'project/ignores',
+    ignores: projectIgnores
+  },
+  {
+    name: 'base/language',
     languageOptions: {
-      parser: tsparser,
-      parserOptions: {
-        ecmaVersion: 'latest',
-        sourceType: 'module',
-      },
-    },
-    linterOptions: {
-      reportUnusedDisableDirectives: true,
-    },
+      ecmaVersion: 'latest',
+      sourceType: 'module',
+      globals: {
+        ...globals.browser,
+        ...globals.es2021,
+        ...globals.node
+      }
+    }
+  },
+  {
+    name: 'project/tests',
+    files: testFilePatterns,
+    languageOptions: {
+      globals: {
+        ...globals.browser,
+        ...globals.es2021,
+        ...globals.node,
+        ...globals.jest
+      }
+    }
   },
   js.configs.recommended,
+  ...tseslint.configs.recommended,
+  jsxA11yFlat,
+  sonarjs.configs.recommended,
   {
+    name: 'project/custom',
     plugins: {
-      '@typescript-eslint': tseslint,
+      prettier: prettierPlugin
     },
     rules: {
-      ...tseslint.configs.recommended.rules,
-      'no-console': ['warn', { allow: ['warn', 'error'] }],
-      'no-debugger': 'warn',
-    },
-    files: ['**/*.{ts,tsx}'],
+      'no-unused-vars': 'off',
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }
+      ],
+      'prettier/prettier': 'error',
+      'sonarjs/constructor-for-side-effects': 'off',
+      'sonarjs/pseudo-random': 'off',
+      'sonarjs/no-identical-functions': 'off',
+      'sonarjs/use-type-alias': 'off'
+    }
   },
-  {
-    files: ['**/*.test.ts', '**/__tests__/**/*.ts'],
-    rules: {
-      '@typescript-eslint/no-explicit-any': 'off',
-    },
-  },
-  {
-    ignores: ['dist', 'coverage', '.yarn', '**/node_modules']
-  }
-)
-
-module.exports = config
+  eslintConfigPrettier
+]

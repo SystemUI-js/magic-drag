@@ -37,7 +37,8 @@ class MockBroadcastChannel {
   }
 }
 
-global.BroadcastChannel = MockBroadcastChannel as unknown as typeof BroadcastChannel
+global.BroadcastChannel =
+  MockBroadcastChannel as unknown as typeof BroadcastChannel
 
 interface TestCardData {
   title: string
@@ -61,7 +62,7 @@ class TestCard extends MagicDrag<TestCardData> {
   serialize(): SerializedData<TestCardData> {
     return this.createSerializedData({
       title: this.title,
-      content: this.content,
+      content: this.content
     })
   }
 
@@ -168,12 +169,12 @@ describe('MagicDrag', () => {
       pose: {
         position: { x: 100, y: 200 },
         width: 50,
-        height: 50,
+        height: 50
       },
       customData: {
         title: 'New Title',
-        content: 'New Content',
-      },
+        content: 'New Content'
+      }
     }
 
     card.deserialize(serializedData)
@@ -205,5 +206,27 @@ describe('MagicDrag', () => {
 
     card.destroy()
     expect(container.contains(element)).toBe(false)
+  })
+
+  it('should have onAbort hook available for override', () => {
+    let abortCalled = false
+
+    class TestCardWithAbort extends TestCard {
+      protected onAbort(): void {
+        abortCalled = true
+      }
+
+      triggerAbort(): void {
+        this.onAbort()
+      }
+    }
+
+    const element = document.createElement('div')
+    const card = new TestCardWithAbort(element)
+
+    card.triggerAbort()
+
+    expect(abortCalled).toBe(true)
+    card.destroy()
   })
 })

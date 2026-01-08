@@ -17,10 +17,10 @@ Magic Drag 是一个跨浏览器标签页拖拽库，允许用户将元素从一
 
 ### 核心组件
 
-| 组件 | 职责 |
-|------|------|
-| `MagicDrag` | 抽象基类，使用者需继承实现序列化/反序列化逻辑 |
-| `MagicDragManager` | 全局单例管理器，协调多实例和跨 Tab 通信 |
+| 组件               | 职责                                          |
+| ------------------ | --------------------------------------------- |
+| `MagicDrag`        | 抽象基类，使用者需继承实现序列化/反序列化逻辑 |
+| `MagicDragManager` | 全局单例管理器，协调多实例和跨 Tab 通信       |
 
 ### 依赖
 
@@ -101,7 +101,7 @@ class MyCard extends MagicDrag<CardData> {
   serialize(): SerializedData<CardData> {
     return this.createSerializedData({
       title: this.title,
-      content: this.content,
+      content: this.content
     })
   }
 
