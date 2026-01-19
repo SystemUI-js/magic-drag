@@ -55,7 +55,7 @@
   },
   "dependencies": {
     "@system-ui-js/development-base": "^0.1.3",
-    "@system-ui-js/multi-drag": "^0.2.6"
+    "@system-ui-js/multi-drag": "^0.2.7"
   },
   "keywords": [
     "drag",

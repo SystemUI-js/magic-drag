@@ -2,7 +2,12 @@
  * @jest-environment jsdom
  */
 
-import { MagicDrag, MagicDragManager, type SerializedData } from '../magic-drag'
+import {
+  MagicDrag,
+  MagicDragManager,
+  type ScreenPosition,
+  type SerializedData
+} from '../magic-drag'
 
 class MockBroadcastChannel {
   name: string
@@ -196,28 +201,27 @@ describe('MagicDrag', () => {
     expect(manager.getInstance(card.instanceId)).toBeUndefined()
   })
 
-  it('should remove element on destroy', () => {
-    const container = document.createElement('div')
+  it('should unregister instance on destroy', () => {
+    const manager = MagicDragManager.getInstance()
     const element = document.createElement('div')
-    container.appendChild(element)
-
     const card = new TestCard(element)
-    expect(container.contains(element)).toBe(true)
+
+    expect(manager.getInstance(card.instanceId)).toBe(card)
 
     card.destroy()
-    expect(container.contains(element)).toBe(false)
+    expect(manager.getInstance(card.instanceId)).toBeUndefined()
   })
 
   it('should have onAbort hook available for override', () => {
     let abortCalled = false
 
     class TestCardWithAbort extends TestCard {
-      protected onAbort(): void {
+      protected onAbort(_screenPosition: ScreenPosition): void {
         abortCalled = true
       }
 
       triggerAbort(): void {
-        this.onAbort()
+        this.onAbort({ screenX: 0, screenY: 0 })
       }
     }
 

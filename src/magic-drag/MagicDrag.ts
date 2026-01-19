@@ -60,7 +60,7 @@ export abstract class MagicDrag<T = unknown> {
   private isDragging = false
   private hasLeftTab = false
   private dragOffset: DragOffset = { x: 0, y: 0 }
-  private isHidden = false
+  private lastScreenPosition: ScreenPosition | null = null
 
   constructor(element: HTMLElement, options: MagicDragOptions = {}) {
     this.element = element
@@ -103,8 +103,8 @@ export abstract class MagicDrag<T = unknown> {
       this.handleDragStart(fingers)
     })
 
-    this.drag.addEventListener(DragOperationType.Move, () => {
-      this.handleDragMove()
+    this.drag.addEventListener(DragOperationType.Move, (fingers) => {
+      this.handleDragMove(fingers)
     })
 
     this.drag.addEventListener(DragOperationType.End, () => {
@@ -115,7 +115,6 @@ export abstract class MagicDrag<T = unknown> {
   private handleDragStart(fingers: unknown[]): void {
     this.isDragging = true
     this.hasLeftTab = false
-    this.isHidden = false
 
     const firstFinger = fingers[0]
     if (
@@ -134,36 +133,42 @@ export abstract class MagicDrag<T = unknown> {
           x: lastStart.point.x - rect.left,
           y: lastStart.point.y - rect.top
         }
+        this.lastScreenPosition = {
+          screenX: window.screenX + lastStart.point.x,
+          screenY: window.screenY + lastStart.point.y
+        }
       }
     }
 
     const serializedData = this.serialize()
     this.manager.notifyDragStart(this.instanceId, serializedData)
 
-    this.onDragStart()
+    const screenPosition =
+      this.lastScreenPosition ?? this.getScreenPosition(fingers)
+    this.onDragStart(screenPosition)
   }
 
-  private handleDragMove(): void {
+  private handleDragMove(fingers: unknown[]): void {
     if (!this.isDragging) {
       return
     }
 
-    const screenPosition = this.getScreenPosition()
+    const screenPosition = this.getScreenPosition(fingers)
+    const isLeaveTab = this.isPositionOutsideViewport(screenPosition)
     const serializedData = this.serialize()
 
+    this.lastScreenPosition = screenPosition
     this.manager.notifyDragMove(this.instanceId, screenPosition, serializedData)
 
-    const isOutsideViewport = this.isPositionOutsideViewport(screenPosition)
-
-    if (isOutsideViewport && !this.hasLeftTab) {
+    if (isLeaveTab && !this.hasLeftTab) {
       this.hasLeftTab = true
-      this.onLeaveTab()
-    } else if (!isOutsideViewport && this.hasLeftTab) {
+      this.onLeaveTab(screenPosition)
+    } else if (!isLeaveTab && this.hasLeftTab) {
       this.hasLeftTab = false
-      this.onEnterTab()
+      this.onEnterTab(screenPosition)
     }
 
-    this.onDragMove(screenPosition)
+    this.onDragMove(screenPosition, isLeaveTab)
   }
 
   private handleDragEnd(): void {
@@ -173,6 +178,8 @@ export abstract class MagicDrag<T = unknown> {
 
     const serializedData = this.serialize()
     const dragState = this.manager.getDragState()
+    console.log('[handleDragEnd] dragState: ', dragState)
+    const screenPosition = this.lastScreenPosition ?? this.getScreenPosition()
 
     if (
       this.hasLeftTab &&
@@ -194,21 +201,38 @@ export abstract class MagicDrag<T = unknown> {
       this.manager.notifyDragAbort(this.instanceId, serializedData)
       this.isDragging = false
       this.hasLeftTab = false
-      this.show()
-      this.onAbort()
+      this.onAbort(screenPosition)
       return
     }
 
+    const isLeaveTab = this.hasLeftTab
     this.manager.notifyDragEnd(this.instanceId, serializedData)
     this.isDragging = false
     this.hasLeftTab = false
 
-    if (!this.isHidden) {
-      this.onDragEnd()
-    }
+    this.onDragEnd(screenPosition, isLeaveTab)
   }
 
-  private getScreenPosition(): ScreenPosition {
+  private getScreenPosition(fingers: unknown[] = []): ScreenPosition {
+    const firstFinger = fingers[0]
+    if (
+      firstFinger &&
+      typeof firstFinger === 'object' &&
+      'getLastOperation' in firstFinger
+    ) {
+      const lastMove = (
+        firstFinger as {
+          getLastOperation?: () => { point: { x: number; y: number } }
+        }
+      )?.getLastOperation?.()
+      if (lastMove?.point) {
+        return {
+          screenX: window.screenX + lastMove.point.x,
+          screenY: window.screenY + lastMove.point.y
+        }
+      }
+    }
+
     const rect = this.element.getBoundingClientRect()
     return {
       screenX: window.screenX + rect.left + rect.width / 2,
@@ -233,41 +257,23 @@ export abstract class MagicDrag<T = unknown> {
     )
   }
 
-  protected onDragStart(): void {}
+  protected onDragStart(_screenPosition: ScreenPosition): void {}
 
-  protected onDragMove(_screenPosition: ScreenPosition): void {}
+  protected onDragMove(
+    _screenPosition: ScreenPosition,
+    _isLeaveTab: boolean
+  ): void {}
 
-  protected onDragEnd(): void {}
+  protected onDragEnd(
+    _screenPosition: ScreenPosition,
+    _isLeaveTab: boolean
+  ): void {}
 
-  protected onAbort(): void {}
+  protected onAbort(_screenPosition: ScreenPosition): void {}
 
-  protected onLeaveTab(): void {
-    this.element.style.opacity = '0.3'
-  }
+  protected onLeaveTab(_screenPosition: ScreenPosition): void {}
 
-  protected onEnterTab(): void {
-    this.element.style.opacity = '1'
-  }
-
-  hide(): void {
-    if (this.isHidden) {
-      return
-    }
-    this.isHidden = true
-    this.element.style.opacity = '0'
-  }
-
-  show(): void {
-    if (!this.isHidden) {
-      return
-    }
-    this.isHidden = false
-    this.element.style.opacity = '1'
-  }
-
-  isElementHidden(): boolean {
-    return this.isHidden
-  }
+  protected onEnterTab(_screenPosition: ScreenPosition): void {}
 
   destroy(): void {
     this.drag.setDisabled()

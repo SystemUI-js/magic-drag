@@ -1,4 +1,9 @@
-import { MagicDrag, MagicDragManager, type SerializedData } from './magic-drag'
+import {
+  MagicDrag,
+  MagicDragManager,
+  ScreenPosition,
+  type SerializedData
+} from './magic-drag'
 
 interface CardData {
   title: string
@@ -10,6 +15,9 @@ class DemoCard extends MagicDrag<CardData> {
   private title: string
   private content: string
   private color: string
+  private initialLeft: string = ''
+  private initialTop: string = ''
+  private initialDisplay: string = ''
 
   constructor(
     element: HTMLElement,
@@ -42,6 +50,7 @@ class DemoCard extends MagicDrag<CardData> {
     this.content = data.customData.content
     this.color = data.customData.color
     this.render()
+    this.applyStyles()
   }
 
   private render(): void {
@@ -66,15 +75,53 @@ class DemoCard extends MagicDrag<CardData> {
     })
   }
 
-  protected onAbort(): void {
-    this.element.style.transition = 'transform 0.15s ease-out, opacity 0.15s'
-    this.element.style.transform = 'scale(1.05)'
-    this.element.style.opacity = '0.7'
+  protected onDragMove(
+    _screenPosition: ScreenPosition,
+    _isLeaveTab: boolean
+  ): void {
+    console.log(_screenPosition, _isLeaveTab)
+  }
+  protected onDragEnd(
+    _screenPosition: ScreenPosition,
+    _isLeaveTab: boolean
+  ): void {
+    console.log('onDragEnd', _screenPosition, _isLeaveTab)
+  }
 
-    setTimeout(() => {
-      this.element.style.transform = 'scale(1)'
-      this.element.style.opacity = '1'
-    }, 150)
+  public onDragInInternal(): void {
+    this.applyStyles()
+  }
+
+  protected onDragStart(_screenPosition: ScreenPosition): void {
+    this.initialLeft = this.element.style.left
+    this.initialTop = this.element.style.top
+    this.initialDisplay = this.element.style.display
+  }
+
+  // 让元素回到拖拽开始时
+  protected goBackToDragStart() {
+    this.element.style.left = this.initialLeft
+    this.element.style.top = this.initialTop
+  }
+
+  // 销毁元素
+  protected destroyElement() {
+    this.element.remove()
+  }
+
+  // 隐藏元素
+  protected hideElement() {
+    this.element.style.display = 'none'
+  }
+
+  // 显示元素
+  protected showElement() {
+    this.element.style.display = this.initialDisplay || ''
+  }
+
+  protected onAbort(_screenPosition: ScreenPosition): void {
+    console.log('onAbort', _screenPosition)
+    this.goBackToDragStart()
   }
 }
 
@@ -87,9 +134,9 @@ if (app) {
   app.innerHTML = `
     <style>
       :root { color-scheme: light dark; }
-      body { 
-        font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial; 
-        margin: 0; 
+      body {
+        font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+        margin: 0;
         padding: 2rem;
         min-height: 100vh;
         background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
@@ -103,10 +150,10 @@ if (app) {
       }
       .info h1 { margin: 0 0 0.5rem 0; }
       .info p { margin: 0; opacity: 0.8; }
-      .tab-id { 
-        font-family: monospace; 
-        background: rgba(255,255,255,0.2); 
-        padding: 2px 6px; 
+      .tab-id {
+        font-family: monospace;
+        background: rgba(255,255,255,0.2);
+        padding: 2px 6px;
         border-radius: 4px;
       }
     </style>
