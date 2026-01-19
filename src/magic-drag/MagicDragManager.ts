@@ -354,12 +354,7 @@ export class MagicDragManager {
     }
   }
 
-  private handleExternalDragLeaveTab(message: MagicDragMessage): void {
-    const instance = this.instances.get(message.instanceId)
-    if (instance && 'hide' in instance) {
-      ;(instance as { hide: () => void }).hide()
-    }
-  }
+  private handleExternalDragLeaveTab(_message: MagicDragMessage): void {}
 
   private isMouseInCurrentTab(screenPosition: ScreenPosition): boolean {
     const clientX = screenPosition.screenX - window.screenX

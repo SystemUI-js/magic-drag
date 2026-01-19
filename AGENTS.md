@@ -12,6 +12,7 @@ Magic Drag 是一个跨浏览器标签页拖拽库，允许用户将元素从一
 - **预览元素**：拖拽进入目标 Tab 时自动创建预览元素
 - **多输入支持**：支持鼠标、触摸屏和手写笔操作
 - **TypeScript 原生支持**：完整的类型定义
+- **事件驱动**：`MagicDrag` 只负责触发事件并传输必要数据，不直接操作 DOM
 
 ## 技术架构
 
@@ -30,13 +31,13 @@ Magic Drag 是一个跨浏览器标签页拖拽库，允许用户将元素从一
 
 使用 `BroadcastChannel API` 实现跨 Tab 通信，消息类型包括：
 
-- `DRAG_START`：开始拖拽
-- `DRAG_MOVE`：拖拽移动
-- `DRAG_END`：拖拽结束
-- `DRAG_ENTER_TAB`：进入目标 Tab
-- `DRAG_LEAVE_TAB`：离开源 Tab
-- `DRAG_DROP`：放置到目标 Tab
-- `TAB_ACTIVATED`：Tab 激活通知
+- `DRAG_START`：开始拖拽（携带 ID、screenPosition、dragOffset、序列化数据）
+- `DRAG_MOVE`：拖拽移动（携带 ID、screenPosition、dragOffset）
+- `DRAG_END`：拖拽结束（携带 ID、序列化数据）
+- `DRAG_ENTER_TAB`：进入目标 Tab（携带 ID、screenPosition、dragOffset）
+- `DRAG_LEAVE_TAB`：离开源 Tab（携带 ID、dragOffset）
+- `DRAG_DROP`：放置到目标 Tab（携带 ID、序列化数据）
+- `DRAG_ABORT`：拖拽中止（带 ID，用于释放实例）
 - `HEARTBEAT`：心跳检测
 
 ### 跨 Tab 拖动流程
@@ -52,18 +53,21 @@ Tab A (源)                                    Tab B (目标)
     │                                              │
 用户将光标移到 Tab B
     │
-    ├─── DRAG_LEAVE ──────────────────────────▶
+    ├─── DRAG_LEAVE_TAB ──────────────────────▶
+    │                                              │
+                                               收到 DRAG_ENTER_TAB
+                                               创建预览并触发 onDragIn
+                                                   │
+用户在 Tab B 释放鼠标
     │
-                                               用户继续在 Tab B 拖动
-                                                   │
-    ◀─── TAB_ACTIVATED ───────────────────────────┤
-         (Tab B 激活，创建预览元素)                 │
-                                                   │
-                                               用户释放
-                                                   │
-    ◀─── DRAG_DROP ───────────────────────────────┤
-         (原 Tab 销毁实例)                          │
-                                               Tab B 反序列化创建实例
+    ├─── DRAG_DROP ──────────────────────────▶ Tab B 反序列化创建实例
+    │                                              │
+    ◀─── DRAG_END ────────────────────────────────┤
+         (源 Tab 销毁实例)
+
+用户拖出所有 Tab 并松开
+    │
+    ├─── DRAG_ABORT ─────────────────────────▶ 其他 Tab 释放实例
 ```
 
 ## 使用方式

@@ -1024,10 +1024,10 @@
   resolved "https://registry.yarnpkg.com/@system-ui-js/development-base/-/development-base-0.1.3.tgz#d40977a77344811928d1839c317f77cd5a2ed5f3"
   integrity sha512-/SPkWsJGi2bfD5CF5TDvpm0swfEp4TYMaBrtYuGP2dZXLmE8S+fr8ClEjdbwvNIXHzQyt96KDBvEHdLNSOJipg==
 
-"@system-ui-js/multi-drag@^0.2.6":
-  version "0.2.6"
-  resolved "https://registry.yarnpkg.com/@system-ui-js/multi-drag/-/multi-drag-0.2.6.tgz#f69291fd71ad206dfd8e310301f473d6720dbb8d"
-  integrity sha512-FMrSXqv9EgBpqsFgYsTDkxO29A3ve3y+hzv8EwWuvVGZ5aoACKG/hlWjVCt9e1J5jIf3raJlF2VJstDa6La30A==
+"@system-ui-js/multi-drag@^0.2.7":
+  version "0.2.7"
+  resolved "https://registry.yarnpkg.com/@system-ui-js/multi-drag/-/multi-drag-0.2.7.tgz#8ff904babbfd0da4a4f9d1fdcd96f1c02902ac40"
+  integrity sha512-5FCG2dTXdsqh6oE0FK+Al/SctezB8oQAuvvBPwQWmFohcPQBph+ZjtVtwcC4Txrh3PyOV3VKFLyfRTY0bzmPew==
   dependencies:
     lodash "^4.17.21"
     loglevel "^1.9.2"
