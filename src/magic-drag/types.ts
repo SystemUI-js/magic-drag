@@ -170,11 +170,9 @@ export interface PreviewInfo {
 }
 
 export type MagicDragConstructor<T extends MagicDragBase = MagicDragBase> =
-  new (
-    element: HTMLElement,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ...args: any[]
-  ) => T
+  (new (element: HTMLElement, ...args: never[]) => T) & {
+    channelName?: string
+  }
 
 /**
  * MagicDrag 基类接口
@@ -196,9 +194,11 @@ export interface MagicDragBase {
 /**
  * 事件监听器类型
  */
-export type MagicDragEventListener<T = unknown> = (
-  message: MagicDragMessage<T>
-) => void
+export type MagicDragEventListener<T = MagicDragMessage> = (message: T) => void
+
+export interface MagicDragEventListenerOptions {
+  channelName?: string
+}
 
 /**
  * 事件类型映射
@@ -212,4 +212,22 @@ export interface MagicDragEventMap {
   [MagicDragMessageType.DRAG_DROP]: MagicDragMessage
   [MagicDragMessageType.DRAG_ABORT]: MagicDragMessage
   [MagicDragMessageType.TAB_ACTIVATED]: MagicDragMessage
+  [MagicDragMessageType.HEARTBEAT]: MagicDragMessage
+  [MagicDragMessageType.HEARTBEAT_ACK]: MagicDragMessage
 }
+
+export interface MagicDragEventListenerEntry<
+  EventType extends MagicDragMessageType
+> {
+  listener: MagicDragEventListener<MagicDragMessage>
+  originalListener: MagicDragEventListener<MagicDragEventMap[EventType]>
+  channelName?: string
+  type: EventType
+}
+
+export type MagicDragEventListenerStore = Map<
+  MagicDragMessageType,
+  Set<MagicDragEventListenerEntry<MagicDragMessageType>>
+>
+
+export type MagicDragAnyEventListenerStore = MagicDragEventListenerStore

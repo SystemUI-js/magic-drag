@@ -167,3 +167,9 @@ yarn format       # 代码格式化
 2. 需要在每个 Tab 中调用 `MagicDragManager.registerClass()` 注册可拖拽类
 3. BroadcastChannel 只在同源（Same Origin）的 Tab 之间工作
 4. 跨 Tab 传输的数据必须是可序列化的（无法传输函数、DOM 元素等）
+
+## Active Technologies
+- TypeScript ~5.6.3 + @system-ui-js/multi-drag, @system-ui-js/development-base, BroadcastChannel API (001-manager-dispatch)
+
+## Recent Changes
+- 001-manager-dispatch: Added TypeScript ~5.6.3 + @system-ui-js/multi-drag, @system-ui-js/development-base, BroadcastChannel API

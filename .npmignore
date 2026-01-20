@@ -1,0 +1,28 @@
+# Node.js dependencies
+node_modules/
+
+# Build outputs
+build/
+dist/
+
+# Logs
+*.log
+
+# Environment files
+.env*
+
+# Tests and coverage
+coverage/
+__tests__/
+
+# Tooling and configs
+.eslintrc*
+eslint.config.*
+.prettierrc*
+.prettierignore
+.vscode/
+.idea/
+
+# Misc
+*.tgz
+*.tsbuildinfo

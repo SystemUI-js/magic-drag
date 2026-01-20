@@ -50,6 +50,8 @@ function generateUUID(): string {
 }
 
 export abstract class MagicDrag<T = unknown> {
+  static channelName = 'magic-drag-channel'
+
   readonly instanceId: string = generateUUID()
   readonly element: HTMLElement
 
@@ -65,8 +67,11 @@ export abstract class MagicDrag<T = unknown> {
   constructor(element: HTMLElement, options: MagicDragOptions = {}) {
     this.element = element
     this.options = options
+
+    const constructor = this.constructor as typeof MagicDrag
+    const channelName = constructor.channelName
     this.manager = MagicDragManager.getInstance({
-      channelName: options.channelName,
+      channelName,
       previewContainer: options.previewContainer
     })
 
@@ -83,6 +88,11 @@ export abstract class MagicDrag<T = unknown> {
   abstract deserialize(data: SerializedData<T>): void
 
   protected abstract getClassName(): string
+
+  protected getChannelName(): string {
+    const constructor = this.constructor as typeof MagicDrag
+    return constructor.channelName
+  }
 
   protected getCurrentPose(): Pose {
     return defaultGetPose(this.element)
