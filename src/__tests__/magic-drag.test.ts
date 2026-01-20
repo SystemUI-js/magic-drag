@@ -12,6 +12,7 @@ import {
 class MockBroadcastChannel {
   name: string
   onmessage: ((event: MessageEvent) => void) | null = null
+  private messageListeners: Set<(event: MessageEvent) => void> = new Set()
   private static channels = new Map<string, Set<MockBroadcastChannel>>()
 
   constructor(name: string) {
@@ -26,10 +27,36 @@ class MockBroadcastChannel {
     const channels = MockBroadcastChannel.channels.get(this.name)
     if (channels) {
       for (const channel of channels) {
-        if (channel !== this && channel.onmessage) {
-          channel.onmessage(new MessageEvent('message', { data }))
+        if (channel !== this) {
+          const event = new MessageEvent('message', { data })
+          // 触发 onmessage 属性
+          if (channel.onmessage) {
+            channel.onmessage(event)
+          }
+          // 触发通过 addEventListener 注册的监听器
+          for (const listener of channel.messageListeners) {
+            listener(event)
+          }
         }
       }
+    }
+  }
+
+  addEventListener(
+    type: string,
+    listener: (event: MessageEvent) => void
+  ): void {
+    if (type === 'message') {
+      this.messageListeners.add(listener)
+    }
+  }
+
+  removeEventListener(
+    type: string,
+    listener: (event: MessageEvent) => void
+  ): void {
+    if (type === 'message') {
+      this.messageListeners.delete(listener)
     }
   }
 

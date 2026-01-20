@@ -1,0 +1,77 @@
+openapi: 3.0.3
+info:
+  title: Magic Drag Signal Contracts
+  version: 1.0.0
+  description: Event-style signal contracts for MagicDragManager dispatch and listener routing.
+paths: {}
+components:
+  schemas:
+    MagicDragMessageType:
+      type: string
+      enum:
+        - magic_drag_start
+        - magic_drag_move
+        - magic_drag_end
+        - magic_drag_enter_tab
+        - magic_drag_leave_tab
+        - magic_drag_drop
+        - magic_drag_abort
+        - magic_drag_tab_activated
+        - magic_drag_heartbeat
+        - magic_drag_heartbeat_ack
+    ScreenPosition:
+      type: object
+      required: [screenX, screenY]
+      properties:
+        screenX:
+          type: number
+        screenY:
+          type: number
+    DragOffset:
+      type: object
+      required: [x, y]
+      properties:
+        x:
+          type: number
+        y:
+          type: number
+    SerializedData:
+      type: object
+      required: [instanceId, className, pose, customData]
+      properties:
+        instanceId:
+          type: string
+        className:
+          type: string
+        pose:
+          type: object
+          additionalProperties: true
+        customData:
+          type: object
+          additionalProperties: true
+        dragOffset:
+          $ref: '#/components/schemas/DragOffset'
+    MagicDragMessagePayload:
+      type: object
+      required: [timestamp]
+      properties:
+        serializedData:
+          $ref: '#/components/schemas/SerializedData'
+        screenPosition:
+          $ref: '#/components/schemas/ScreenPosition'
+        timestamp:
+          type: number
+    MagicDragMessage:
+      type: object
+      required: [type, instanceId, sourceTabId, payload]
+      properties:
+        type:
+          $ref: '#/components/schemas/MagicDragMessageType'
+        instanceId:
+          type: string
+        sourceTabId:
+          type: string
+        targetTabId:
+          type: string
+        payload:
+          $ref: '#/components/schemas/MagicDragMessagePayload'

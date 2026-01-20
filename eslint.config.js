@@ -15,8 +15,10 @@ const baseIgnores = [
 
 const projectIgnores = [
   'dist',
+  'build',
   'coverage',
   'node_modules',
+  '*.min.js',
   'playwright-report',
   'test-results'
 ]
