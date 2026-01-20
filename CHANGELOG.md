@@ -19,6 +19,7 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 - 修复 tsconfig.build.json 配置冲突：将 `noEmit: false` 改为 `emitDeclarationOnly: true`，解决 `allowImportingTsExtensions` 只能在 `noEmit` 或 `emitDeclarationOnly` 时使用的 TypeScript 编译错误
 - 修复 ESLint 错误：将 `MagicDrag.channelName` 改为 `readonly`，符合 sonarjs/public-static-readonly 规则
 - 修复 ESLint 错误：移除冗余的类型别名 `MagicDragAnyEventListenerStore`，符合 sonarjs/redundant-type-aliases 规则
+- 修复拖出所有 Tab 时无法触发 DRAG_ABORT 的问题：在 handleExternalDragMove 中，当鼠标离开当前 Tab 时，如果 `activeTabId` 等于当前 Tab ID，则将其设为 null，确保 MagicDrag.handleDragEnd 能正确判断 abort 条件
 
 ## 0.1.0 - 2025-11-16
 

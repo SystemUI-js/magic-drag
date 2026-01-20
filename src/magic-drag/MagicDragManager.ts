@@ -507,6 +507,8 @@ export class MagicDragManager {
       if (!this.previewInfo && this.dragState.serializedData) {
         this.createPreview(screenPosition, this.dragState.serializedData)
       }
+    } else if (screenPosition && this.dragState.activeTabId === this.tabId) {
+      this.dragState.activeTabId = null
     }
 
     if (this.previewInfo && screenPosition) {
