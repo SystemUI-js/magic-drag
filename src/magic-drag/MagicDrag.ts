@@ -50,7 +50,7 @@ function generateUUID(): string {
 }
 
 export abstract class MagicDrag<T = unknown> {
-  static channelName = 'magic-drag-channel'
+  static readonly channelName = 'magic-drag-channel'
 
   readonly instanceId: string = generateUUID()
   readonly element: HTMLElement

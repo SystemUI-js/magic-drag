@@ -6,7 +6,7 @@ import type {
   MagicDragEventListener,
   MagicDragEventListenerEntry,
   MagicDragEventListenerOptions,
-  MagicDragAnyEventListenerStore,
+  MagicDragEventListenerStore,
   MagicDragManagerOptions,
   MagicDragMessage,
   MagicDragEventMap,
@@ -53,7 +53,7 @@ export class MagicDragManager {
   private classRegistry = new Map<string, MagicDragConstructor>()
   private instances = new Map<string, MagicDragBase>()
   private knownTabs = new Map<string, TabInfo>()
-  private eventListeners: MagicDragAnyEventListenerStore = new Map()
+  private eventListeners: MagicDragEventListenerStore = new Map()
   private channelNames = new Map<string, string>()
   private channelRefCounts = new Map<string, number>()
   private lastNoListenerLogAt = new Map<MagicDragMessageType, number>()

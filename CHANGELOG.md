@@ -17,6 +17,8 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 ### Fixed
 - 移除无用的测试文件 `src/__tests__/sum.test.ts`
 - 修复 tsconfig.build.json 配置冲突：将 `noEmit: false` 改为 `emitDeclarationOnly: true`，解决 `allowImportingTsExtensions` 只能在 `noEmit` 或 `emitDeclarationOnly` 时使用的 TypeScript 编译错误
+- 修复 ESLint 错误：将 `MagicDrag.channelName` 改为 `readonly`，符合 sonarjs/public-static-readonly 规则
+- 修复 ESLint 错误：移除冗余的类型别名 `MagicDragAnyEventListenerStore`，符合 sonarjs/redundant-type-aliases 规则
 
 ## 0.1.0 - 2025-11-16
 

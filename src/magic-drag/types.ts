@@ -229,5 +229,3 @@ export type MagicDragEventListenerStore = Map<
   MagicDragMessageType,
   Set<MagicDragEventListenerEntry<MagicDragMessageType>>
 >
-
-export type MagicDragAnyEventListenerStore = MagicDragEventListenerStore
