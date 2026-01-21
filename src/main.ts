@@ -33,7 +33,7 @@ class DemoCard extends MagicDrag<CardData> {
     this.applyStyles()
   }
 
-  protected getClassName(): string {
+  public getClassName(): string {
     return 'DemoCard'
   }
 
@@ -79,13 +79,13 @@ class DemoCard extends MagicDrag<CardData> {
     _screenPosition: ScreenPosition,
     _isLeaveTab: boolean
   ): void {
-    console.log(_screenPosition, _isLeaveTab)
+    // console.log(_screenPosition, _isLeaveTab)
   }
   protected onDragEnd(
     _screenPosition: ScreenPosition,
     _isLeaveTab: boolean
   ): void {
-    console.log('onDragEnd', _screenPosition, _isLeaveTab)
+    console.log('[onDragEnd]', _screenPosition, _isLeaveTab)
   }
 
   public onDragInInternal(): void {
@@ -96,6 +96,7 @@ class DemoCard extends MagicDrag<CardData> {
     this.initialLeft = this.element.style.left
     this.initialTop = this.element.style.top
     this.initialDisplay = this.element.style.display
+    console.log(`[onDragStart]`)
   }
 
   // 让元素回到拖拽开始时

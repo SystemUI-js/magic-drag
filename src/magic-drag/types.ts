@@ -111,6 +111,7 @@ export interface MagicDragOptions {
   previewZIndex?: number
   /** 预览元素的透明度，默认 0.7 */
   previewOpacity?: number
+  coordinator?: MagicDragCoordinator
 }
 
 /**
@@ -172,22 +173,54 @@ export interface PreviewInfo {
 export type MagicDragConstructor<T extends MagicDragBase = MagicDragBase> =
   (new (element: HTMLElement, ...args: never[]) => T) & {
     channelName?: string
+    onEnterTab?: (payload: MagicDragMessagePayload) => void
   }
 
-/**
- * MagicDrag 基类接口
- * 用于类型约束，不直接使用
- */
-export interface MagicDragBase {
-  /** 实例唯一标识 */
+export interface MagicDragOtherTabExtensions {
+  onOtherTabDragStart?: (payload: MagicDragMessagePayload) => void
+  onOtherTabDragMove?: (payload: MagicDragMessagePayload) => void
+  onOtherTabDragEnd?: (payload: MagicDragMessagePayload) => void
+}
+
+export type MagicDragOtherTabExtensionName = keyof MagicDragOtherTabExtensions
+
+export interface MagicDragCoordinator {
+  readonly tabId: string
+  registerInstance(instance: MagicDragBase): void
+  unregisterInstance(instanceId: string): void
+  notifyDragStart(instanceId: string, serializedData: SerializedData): void
+  notifyDragMove(
+    instanceId: string,
+    screenPosition: ScreenPosition,
+    serializedData: SerializedData
+  ): void
+  notifyDragEnd(instanceId: string, serializedData: SerializedData): void
+  notifyDragDrop(
+    instanceId: string,
+    serializedData: SerializedData,
+    targetTabId: string
+  ): void
+  notifyDragAbort(instanceId: string, serializedData: SerializedData): void
+  getDragState(): Readonly<DragState>
+}
+
+let magicDragCoordinator: MagicDragCoordinator | null = null
+
+export const setMagicDragCoordinator = (
+  coordinator: MagicDragCoordinator | null
+): void => {
+  magicDragCoordinator = coordinator
+}
+
+export const getMagicDragCoordinator = (): MagicDragCoordinator | null =>
+  magicDragCoordinator
+
+export interface MagicDragBase extends MagicDragOtherTabExtensions {
   readonly instanceId: string
-  /** 关联的 HTML 元素 */
   readonly element: HTMLElement
-  /** 序列化实例状态 */
+  getClassName(): string
   serialize(): SerializedData
-  /** 从序列化数据恢复实例状态 */
   deserialize(data: SerializedData): void
-  /** 销毁实例 */
   destroy(): void
 }
 

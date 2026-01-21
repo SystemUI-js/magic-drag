@@ -10,11 +10,14 @@ import type {
   MagicDragManagerOptions,
   MagicDragMessage,
   MagicDragEventMap,
+  MagicDragMessagePayload,
+  MagicDragOtherTabExtensionName,
   PreviewInfo,
   ScreenPosition,
   SerializedData,
   TabInfo
 } from './types'
+import { setMagicDragCoordinator } from './types'
 import { MagicDragMessageType } from './types'
 
 const DEFAULT_CHANNEL_NAME = 'magic-drag-channel'
@@ -48,10 +51,13 @@ export class MagicDragManager {
     string,
     (event: MessageEvent<MagicDragMessage>) => void
   >()
+  private unavailableChannels = new Set<string>()
   private options: Required<MagicDragManagerOptions>
 
   private classRegistry = new Map<string, MagicDragConstructor>()
   private instances = new Map<string, MagicDragBase>()
+  private instancesByClassName = new Map<string, Set<MagicDragBase>>()
+  private classNameByChannel = new Map<string, string>()
   private knownTabs = new Map<string, TabInfo>()
   private eventListeners: MagicDragEventListenerStore = new Map()
   private channelNames = new Map<string, string>()
@@ -84,6 +90,7 @@ export class MagicDragManager {
     this.setupChannelListener(this.options.channelName)
     this.setupTabActivationListener()
     this.startHeartbeat()
+    setMagicDragCoordinator(this)
   }
 
   static getInstance(options?: MagicDragManagerOptions): MagicDragManager {
@@ -98,10 +105,15 @@ export class MagicDragManager {
       MagicDragManager.instance.destroy()
       MagicDragManager.instance = null
     }
+    setMagicDragCoordinator(null)
   }
 
   registerClass(className: string, constructor: MagicDragConstructor): void {
-    this.classRegistry.set(className, constructor)
+    if (this.classRegistry.has(className)) {
+      throw new Error(
+        `[MagicDragManager] Duplicate className registration: ${className}`
+      )
+    }
 
     const channelName = constructor.channelName ?? DEFAULT_CHANNEL_NAME
     if (!channelName || channelName.trim().length === 0) {
@@ -110,7 +122,17 @@ export class MagicDragManager {
       )
     }
 
+    const existingClass = this.classNameByChannel.get(channelName)
+    if (existingClass && existingClass !== className) {
+      throw new Error(
+        `[MagicDragManager] channelName conflict: ${channelName} already used by ${existingClass}`
+      )
+    }
+
+    this.classRegistry.set(className, constructor)
     this.channelNames.set(className, channelName)
+    this.classNameByChannel.set(channelName, className)
+
     const nextCount = (this.channelRefCounts.get(channelName) ?? 0) + 1
     this.channelRefCounts.set(channelName, nextCount)
     this.setupChannelListener(channelName)
@@ -121,6 +143,10 @@ export class MagicDragManager {
 
     this.classRegistry.delete(className)
     this.channelNames.delete(className)
+
+    if (channelName) {
+      this.classNameByChannel.delete(channelName)
+    }
 
     if (!channelName) {
       return
@@ -183,9 +209,27 @@ export class MagicDragManager {
 
   registerInstance(instance: MagicDragBase): void {
     this.instances.set(instance.instanceId, instance)
+    const className = instance.getClassName()
+    const collection = this.instancesByClassName.get(className) ?? new Set()
+    collection.add(instance)
+    this.instancesByClassName.set(className, collection)
   }
 
   unregisterInstance(instanceId: string): void {
+    const instance = this.instances.get(instanceId)
+    if (!instance) {
+      return
+    }
+
+    const className = instance.getClassName()
+    const collection = this.instancesByClassName.get(className)
+    if (collection) {
+      collection.delete(instance)
+      if (collection.size === 0) {
+        this.instancesByClassName.delete(className)
+      }
+    }
+
     this.instances.delete(instanceId)
   }
 
@@ -213,8 +257,16 @@ export class MagicDragManager {
       sourceTabId: this.tabId
     }
     const channelName = this.getMessageChannelName(fullMessage)
-    this.setupChannelListener(channelName)
-    this.getChannel(channelName).postMessage(fullMessage)
+
+    try {
+      this.setupChannelListener(channelName)
+      this.getChannel(channelName).postMessage(fullMessage)
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : String(error)
+      console.error(
+        `[MagicDragManager] Failed to broadcast ${fullMessage.type} on ${channelName}: ${reason}`
+      )
+    }
   }
 
   notifyDragStart(instanceId: string, serializedData: SerializedData): void {
@@ -324,8 +376,23 @@ export class MagicDragManager {
   private getChannel(channelName: string): BroadcastChannel {
     let channel = this.channels.get(channelName)
     if (!channel) {
-      channel = new BroadcastChannel(channelName)
-      this.channels.set(channelName, channel)
+      if (this.unavailableChannels.has(channelName)) {
+        throw new Error(
+          `[MagicDragManager] BroadcastChannel unavailable for ${channelName}`
+        )
+      }
+
+      try {
+        channel = new BroadcastChannel(channelName)
+        this.channels.set(channelName, channel)
+      } catch (error) {
+        this.unavailableChannels.add(channelName)
+        const reason = error instanceof Error ? error.message : String(error)
+        console.error(
+          `[MagicDragManager] Failed to create BroadcastChannel for ${channelName}: ${reason}`
+        )
+        throw error
+      }
     }
     return channel
   }
@@ -335,7 +402,17 @@ export class MagicDragManager {
       return
     }
 
-    const channel = this.getChannel(channelName)
+    let channel: BroadcastChannel
+    try {
+      channel = this.getChannel(channelName)
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : String(error)
+      console.error(
+        `[MagicDragManager] BroadcastChannel disabled; fallback to single-tab. channelName=${channelName} reason=${reason}`
+      )
+      return
+    }
+
     const handler = (event: MessageEvent<MagicDragMessage>) => {
       const message = event.data
 
@@ -369,6 +446,18 @@ export class MagicDragManager {
   }
 
   private handleExternalMessage(message: MagicDragMessage): void {
+    const className = message.payload.serializedData?.className
+    if (className && !this.classRegistry.has(className)) {
+      const channelName = this.channelNames.get(className)
+      this.warnUnregisteredClassName(
+        className,
+        'Unregistered class message ignored',
+        message.type,
+        channelName
+      )
+      return
+    }
+
     this.updateTabInfo(message.sourceTabId)
     this.dispatchEvent(message)
 
@@ -418,7 +507,7 @@ export class MagicDragManager {
   private dispatchEvent(message: MagicDragMessage<unknown>): void {
     const listeners = this.eventListeners.get(message.type)
     if (!listeners || listeners.size === 0) {
-      this.maybeLogNoListener(message.type)
+      this.maybeLogNoListener(message)
       return
     }
 
@@ -455,15 +544,20 @@ export class MagicDragManager {
     return this.resolveMessageChannelName(message) ?? this.options.channelName
   }
 
-  private maybeLogNoListener(type: MagicDragMessageType): void {
+  private maybeLogNoListener(message: MagicDragMessage<unknown>): void {
     const now = Date.now()
-    const lastLogAt = this.lastNoListenerLogAt.get(type) ?? 0
+    const lastLogAt = this.lastNoListenerLogAt.get(message.type) ?? 0
     if (now - lastLogAt < DEFAULT_NO_LISTENER_LOG_INTERVAL) {
       return
     }
 
-    this.lastNoListenerLogAt.set(type, now)
-    console.warn(`[MagicDragManager] No listeners registered for ${type}`)
+    this.lastNoListenerLogAt.set(message.type, now)
+
+    const className = message.payload.serializedData?.className
+    const channelName = className ? this.channelNames.get(className) : undefined
+    console.warn(
+      `[MagicDragManager] No listeners registered for ${message.type} class=${className ?? 'unknown'} channel=${channelName ?? 'unknown'}`
+    )
   }
 
   private handleExternalDragStart(message: MagicDragMessage): void {
@@ -477,6 +571,11 @@ export class MagicDragManager {
     }
 
     this.pendingExternalDrag = message
+    this.invokeOtherTabCallbacks(
+      message.payload.serializedData?.className ?? null,
+      'onOtherTabDragStart',
+      message.payload
+    )
   }
 
   private handleExternalDragMove(message: MagicDragMessage): void {
@@ -517,10 +616,21 @@ export class MagicDragManager {
         this.dragState.serializedData?.dragOffset
       )
     }
+
+    this.invokeOtherTabCallbacks(
+      message.payload.serializedData?.className ?? null,
+      'onOtherTabDragMove',
+      message.payload
+    )
   }
 
   private handleExternalDragEnd(message: MagicDragMessage): void {
     if (this.dragState.sourceTabId === message.sourceTabId) {
+      this.invokeOtherTabCallbacks(
+        message.payload.serializedData?.className ?? null,
+        'onOtherTabDragEnd',
+        message.payload
+      )
       this.resetDragState()
       this.removePreview()
     }
@@ -534,22 +644,73 @@ export class MagicDragManager {
   }
 
   private handleExternalDragEnterTab(message: MagicDragMessage): void {
-    if (message.sourceTabId === this.dragState.sourceTabId) {
-      this.dragState.activeTabId = message.targetTabId ?? this.tabId
-      if (
-        !this.previewInfo &&
-        this.dragState.serializedData &&
-        this.dragState.lastScreenPosition
-      ) {
-        this.createPreview(
-          this.dragState.lastScreenPosition,
-          this.dragState.serializedData
-        )
-      }
+    const serializedData = message.payload.serializedData
+    const className = serializedData?.className ?? null
+    const Constructor = className ? this.classRegistry.get(className) : null
+    if (!Constructor && className) {
+      console.warn(`[MagicDragManager] Unknown class: ${className}`)
+    }
+
+    if (Constructor?.onEnterTab && serializedData) {
+      Constructor.onEnterTab(message.payload)
+    }
+
+    this.dragState.activeTabId = message.targetTabId ?? this.tabId
+    if (
+      !this.previewInfo &&
+      this.dragState.serializedData &&
+      this.dragState.lastScreenPosition
+    ) {
+      this.createPreview(
+        this.dragState.lastScreenPosition,
+        this.dragState.serializedData
+      )
     }
   }
 
   private handleExternalDragLeaveTab(_message: MagicDragMessage): void {}
+
+  private warnUnregisteredClassName(
+    className: string,
+    context: string,
+    messageType?: MagicDragMessageType,
+    channelName?: string
+  ): void {
+    const typeLabel = messageType ? ` type=${messageType}` : ''
+    const channelLabel = channelName ? ` channel=${channelName}` : ''
+    console.warn(
+      `[MagicDragManager] ${context}: ${className}${typeLabel}${channelLabel}`
+    )
+  }
+
+  private invokeOtherTabCallbacks(
+    className: string | null,
+    method: MagicDragOtherTabExtensionName,
+    payload: MagicDragMessagePayload
+  ): void {
+    if (!className) {
+      return
+    }
+
+    const instances = this.instancesByClassName.get(className)
+    if (!instances || instances.size === 0) {
+      const channelName = this.channelNames.get(className)
+      this.warnUnregisteredClassName(
+        className,
+        'Unknown class',
+        undefined,
+        channelName
+      )
+      return
+    }
+
+    for (const instance of instances) {
+      const callback = instance[method]
+      if (typeof callback === 'function') {
+        callback.call(instance, payload)
+      }
+    }
+  }
 
   private isMouseInCurrentTab(screenPosition: ScreenPosition): boolean {
     const clientX = screenPosition.screenX - window.screenX

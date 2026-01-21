@@ -78,6 +78,8 @@ interface TestCardData {
 }
 
 class TestCard extends MagicDrag<TestCardData> {
+  static readonly onEnterTab = jest.fn()
+
   private title: string
   private content: string
 
@@ -87,9 +89,13 @@ class TestCard extends MagicDrag<TestCardData> {
     this.content = content
   }
 
-  protected getClassName(): string {
+  getClassName(): string {
     return 'TestCard'
   }
+
+  onOtherTabDragStart = jest.fn()
+  onOtherTabDragMove = jest.fn()
+  onOtherTabDragEnd = jest.fn()
 
   serialize(): SerializedData<TestCardData> {
     return this.createSerializedData({
@@ -116,6 +122,7 @@ describe('MagicDragManager', () => {
   beforeEach(() => {
     MockBroadcastChannel.reset()
     MagicDragManager.resetInstance()
+    TestCard.onEnterTab.mockClear()
   })
 
   it('should create singleton instance', () => {
@@ -159,12 +166,85 @@ describe('MagicDragManager', () => {
 
     card.destroy()
   })
+
+  it('should call onEnterTab for registered class', () => {
+    const manager = MagicDragManager.getInstance()
+    manager.registerClass('TestCard', TestCard)
+
+    const element = document.createElement('div')
+    const card = new TestCard(element)
+
+    const channel = new BroadcastChannel('magic-drag-channel')
+    const serializedData = card.serialize()
+
+    channel.postMessage({
+      type: 'magic_drag_start',
+      instanceId: card.instanceId,
+      sourceTabId: 'external-tab',
+      payload: {
+        serializedData,
+        timestamp: Date.now()
+      }
+    })
+
+    channel.postMessage({
+      type: 'magic_drag_enter_tab',
+      instanceId: card.instanceId,
+      sourceTabId: 'external-tab',
+      targetTabId: manager.tabId,
+      payload: {
+        serializedData,
+        timestamp: Date.now()
+      }
+    })
+
+    expect(TestCard.onEnterTab).toHaveBeenCalledTimes(1)
+
+    channel.close()
+    card.destroy()
+  })
+
+  it('should warn and ignore unregistered class messages', () => {
+    const manager = MagicDragManager.getInstance()
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {})
+
+    const channel = new BroadcastChannel('magic-drag-channel')
+    const message = {
+      type: 'magic_drag_enter_tab',
+      instanceId: 'unknown-instance',
+      sourceTabId: 'external-tab',
+      targetTabId: manager.tabId,
+      payload: {
+        serializedData: {
+          instanceId: 'unknown-instance',
+          className: 'UnknownCard',
+          pose: {
+            position: { x: 0, y: 0 },
+            width: 0,
+            height: 0
+          },
+          customData: null
+        },
+        timestamp: Date.now()
+      }
+    }
+
+    channel.postMessage(message)
+
+    expect(warnSpy).toHaveBeenCalled()
+    expect(TestCard.onEnterTab).not.toHaveBeenCalled()
+
+    warnSpy.mockRestore()
+    channel.close()
+  })
 })
 
 describe('MagicDrag', () => {
   beforeEach(() => {
     MockBroadcastChannel.reset()
     MagicDragManager.resetInstance()
+    const manager = MagicDragManager.getInstance()
+    manager.registerClass('TestCard', TestCard)
   })
 
   it('should create instance with unique id', () => {
@@ -228,6 +308,79 @@ describe('MagicDrag', () => {
     expect(manager.getInstance(card.instanceId)).toBeUndefined()
   })
 
+  it('should receive other tab drag callbacks', () => {
+    const element = document.createElement('div')
+    const card = new TestCard(element)
+
+    const channel = new BroadcastChannel('magic-drag-channel')
+    const serializedData = card.serialize()
+
+    channel.postMessage({
+      type: 'magic_drag_start',
+      instanceId: 'external-instance',
+      sourceTabId: 'external-tab',
+      payload: {
+        serializedData,
+        timestamp: Date.now()
+      }
+    })
+
+    channel.postMessage({
+      type: 'magic_drag_move',
+      instanceId: 'external-instance',
+      sourceTabId: 'external-tab',
+      payload: {
+        serializedData,
+        screenPosition: { screenX: 100, screenY: 120 },
+        timestamp: Date.now()
+      }
+    })
+
+    channel.postMessage({
+      type: 'magic_drag_end',
+      instanceId: 'external-instance',
+      sourceTabId: 'external-tab',
+      payload: {
+        serializedData,
+        timestamp: Date.now()
+      }
+    })
+
+    expect(card.onOtherTabDragStart).toHaveBeenCalledTimes(1)
+    expect(card.onOtherTabDragMove).toHaveBeenCalledTimes(1)
+    expect(card.onOtherTabDragEnd).toHaveBeenCalledTimes(1)
+
+    channel.close()
+    card.destroy()
+  })
+
+  it('should broadcast callbacks to all same-class instances', () => {
+    const elementA = document.createElement('div')
+    const elementB = document.createElement('div')
+    const cardA = new TestCard(elementA)
+    const cardB = new TestCard(elementB)
+
+    const channel = new BroadcastChannel('magic-drag-channel')
+    const serializedData = cardA.serialize()
+
+    channel.postMessage({
+      type: 'magic_drag_start',
+      instanceId: 'external-instance',
+      sourceTabId: 'external-tab',
+      payload: {
+        serializedData,
+        timestamp: Date.now()
+      }
+    })
+
+    expect(cardA.onOtherTabDragStart).toHaveBeenCalledTimes(1)
+    expect(cardB.onOtherTabDragStart).toHaveBeenCalledTimes(1)
+
+    channel.close()
+    cardA.destroy()
+    cardB.destroy()
+  })
+
   it('should unregister instance on destroy', () => {
     const manager = MagicDragManager.getInstance()
     const element = document.createElement('div')
@@ -258,6 +411,44 @@ describe('MagicDrag', () => {
     card.triggerAbort()
 
     expect(abortCalled).toBe(true)
+    card.destroy()
+  })
+
+  it('should allow missing optional extensions without errors', () => {
+    class MinimalCard extends MagicDrag<TestCardData> {
+      static readonly channelName = 'minimal-card-channel'
+
+      getClassName(): string {
+        return 'MinimalCard'
+      }
+
+      serialize(): SerializedData<TestCardData> {
+        return this.createSerializedData({ title: 'a', content: 'b' })
+      }
+
+      deserialize(_data: SerializedData<TestCardData>): void {}
+    }
+
+    const manager = MagicDragManager.getInstance()
+    manager.registerClass('MinimalCard', MinimalCard)
+
+    const element = document.createElement('div')
+    const card = new MinimalCard(element)
+
+    const channel = new BroadcastChannel('minimal-card-channel')
+    channel.postMessage({
+      type: 'magic_drag_start',
+      instanceId: 'external-instance',
+      sourceTabId: 'external-tab',
+      payload: {
+        serializedData: card.serialize(),
+        timestamp: Date.now()
+      }
+    })
+
+    expect(card.instanceId).toBeDefined()
+
+    channel.close()
     card.destroy()
   })
 })

@@ -4,13 +4,14 @@ import {
   defaultGetPose,
   type Pose
 } from '@system-ui-js/multi-drag'
-import { MagicDragManager } from './MagicDragManager'
 import type {
   DragOffset,
   MagicDragOptions,
+  MagicDragCoordinator,
   ScreenPosition,
   SerializedData
 } from './types'
+import { getMagicDragCoordinator } from './types'
 
 /**
  * 生成 UUID
@@ -50,14 +51,23 @@ function generateUUID(): string {
 }
 
 export abstract class MagicDrag<T = unknown> {
-  static readonly channelName = 'magic-drag-channel'
+  static readonly channelName: string
 
   readonly instanceId: string = generateUUID()
   readonly element: HTMLElement
 
   protected drag: Drag
-  protected manager: MagicDragManager
+  protected coordinator: MagicDragCoordinator
   protected options: MagicDragOptions
+
+  protected getDefaultCoordinator(
+    _channelName: string,
+    _previewContainer?: HTMLElement
+  ): MagicDragCoordinator {
+    throw new Error(
+      'MagicDragCoordinator is required. Please register the class with MagicDragManager before creating instances.'
+    )
+  }
 
   private isDragging = false
   private hasLeftTab = false
@@ -70,24 +80,26 @@ export abstract class MagicDrag<T = unknown> {
 
     const constructor = this.constructor as typeof MagicDrag
     const channelName = constructor.channelName
-    this.manager = MagicDragManager.getInstance({
-      channelName,
-      previewContainer: options.previewContainer
-    })
+    const coordinator =
+      options.coordinator ??
+      getMagicDragCoordinator() ??
+      this.getDefaultCoordinator(channelName, options.previewContainer)
+
+    this.coordinator = coordinator
 
     this.drag = new Drag(element, {
       inertial: options.inertial ?? false
     })
 
     this.setupDragEvents()
-    this.manager.registerInstance(this)
+    this.coordinator.registerInstance(this)
   }
 
   abstract serialize(): SerializedData<T>
 
   abstract deserialize(data: SerializedData<T>): void
 
-  protected abstract getClassName(): string
+  abstract getClassName(): string
 
   protected getChannelName(): string {
     const constructor = this.constructor as typeof MagicDrag
@@ -151,7 +163,7 @@ export abstract class MagicDrag<T = unknown> {
     }
 
     const serializedData = this.serialize()
-    this.manager.notifyDragStart(this.instanceId, serializedData)
+    this.coordinator.notifyDragStart(this.instanceId, serializedData)
 
     const screenPosition =
       this.lastScreenPosition ?? this.getScreenPosition(fingers)
@@ -168,7 +180,11 @@ export abstract class MagicDrag<T = unknown> {
     const serializedData = this.serialize()
 
     this.lastScreenPosition = screenPosition
-    this.manager.notifyDragMove(this.instanceId, screenPosition, serializedData)
+    this.coordinator.notifyDragMove(
+      this.instanceId,
+      screenPosition,
+      serializedData
+    )
 
     if (isLeaveTab && !this.hasLeftTab) {
       this.hasLeftTab = true
@@ -187,16 +203,15 @@ export abstract class MagicDrag<T = unknown> {
     }
 
     const serializedData = this.serialize()
-    const dragState = this.manager.getDragState()
-    console.log('[handleDragEnd] dragState: ', dragState)
+    const dragState = this.coordinator.getDragState()
     const screenPosition = this.lastScreenPosition ?? this.getScreenPosition()
 
     if (
       this.hasLeftTab &&
       dragState.activeTabId &&
-      dragState.activeTabId !== this.manager.tabId
+      dragState.activeTabId !== this.coordinator.tabId
     ) {
-      this.manager.notifyDragDrop(
+      this.coordinator.notifyDragDrop(
         this.instanceId,
         serializedData,
         dragState.activeTabId
@@ -208,7 +223,7 @@ export abstract class MagicDrag<T = unknown> {
     }
 
     if (this.hasLeftTab && !dragState.activeTabId) {
-      this.manager.notifyDragAbort(this.instanceId, serializedData)
+      this.coordinator.notifyDragAbort(this.instanceId, serializedData)
       this.isDragging = false
       this.hasLeftTab = false
       this.onAbort(screenPosition)
@@ -216,7 +231,7 @@ export abstract class MagicDrag<T = unknown> {
     }
 
     const isLeaveTab = this.hasLeftTab
-    this.manager.notifyDragEnd(this.instanceId, serializedData)
+    this.coordinator.notifyDragEnd(this.instanceId, serializedData)
     this.isDragging = false
     this.hasLeftTab = false
 
@@ -287,7 +302,7 @@ export abstract class MagicDrag<T = unknown> {
 
   destroy(): void {
     this.drag.setDisabled()
-    this.manager.unregisterInstance(this.instanceId)
+    this.coordinator.unregisterInstance(this.instanceId)
     this.element.remove()
   }
 }

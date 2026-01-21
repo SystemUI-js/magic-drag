@@ -1,0 +1,303 @@
+openapi: 3.0.3
+info:
+  title: MagicDrag Cross-Tab Events
+  version: "0.1"
+paths:
+  /events/drag-start:
+    post:
+      summary: Broadcast drag start event to other tabs
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DragStartMessage"
+      responses:
+        "202":
+          description: Accepted
+  /events/drag-move:
+    post:
+      summary: Broadcast drag move event to other tabs
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DragMoveMessage"
+      responses:
+        "202":
+          description: Accepted
+  /events/drag-end:
+    post:
+      summary: Broadcast drag end event to other tabs
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DragEndMessage"
+      responses:
+        "202":
+          description: Accepted
+  /events/drag-enter-tab:
+    post:
+      summary: Broadcast drag enter event to other tabs
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DragEnterTabMessage"
+      responses:
+        "202":
+          description: Accepted
+  /events/drag-leave-tab:
+    post:
+      summary: Broadcast drag leave event to other tabs
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DragLeaveTabMessage"
+      responses:
+        "202":
+          description: Accepted
+  /events/drag-drop:
+    post:
+      summary: Broadcast drag drop event to other tabs
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DragDropMessage"
+      responses:
+        "202":
+          description: Accepted
+  /events/drag-abort:
+    post:
+      summary: Broadcast drag abort event to other tabs
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DragAbortMessage"
+      responses:
+        "202":
+          description: Accepted
+  /events/heartbeat:
+    post:
+      summary: Broadcast heartbeat event to other tabs
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/HeartbeatMessage"
+      responses:
+        "202":
+          description: Accepted
+components:
+  schemas:
+    ScreenPosition:
+      type: object
+      required: [screenX, screenY]
+      properties:
+        screenX:
+          type: number
+        screenY:
+          type: number
+    DragOffset:
+      type: object
+      required: [x, y]
+      properties:
+        x:
+          type: number
+        y:
+          type: number
+    Pose:
+      type: object
+      required: [x, y, width, height, rotate, scaleX, scaleY]
+      properties:
+        x: { type: number }
+        y: { type: number }
+        width: { type: number }
+        height: { type: number }
+        rotate: { type: number }
+        scaleX: { type: number }
+        scaleY: { type: number }
+    SerializedData:
+      type: object
+      required: [instanceId, className, pose, customData, dragOffset]
+      properties:
+        instanceId:
+          type: string
+        className:
+          type: string
+        pose:
+          $ref: "#/components/schemas/Pose"
+        customData:
+          type: object
+          additionalProperties: true
+        dragOffset:
+          $ref: "#/components/schemas/DragOffset"
+    DragStartMessage:
+      type: object
+      required: [type, instanceId, sourceTabId, payload]
+      properties:
+        type:
+          type: string
+          enum: [DRAG_START]
+        instanceId:
+          type: string
+        sourceTabId:
+          type: string
+        payload:
+          type: object
+          required: [serializedData, timestamp]
+          properties:
+            serializedData:
+              $ref: "#/components/schemas/SerializedData"
+            timestamp:
+              type: number
+    DragMoveMessage:
+      type: object
+      required: [type, instanceId, sourceTabId, payload]
+      properties:
+        type:
+          type: string
+          enum: [DRAG_MOVE]
+        instanceId:
+          type: string
+        sourceTabId:
+          type: string
+        payload:
+          type: object
+          required: [serializedData, screenPosition, timestamp]
+          properties:
+            serializedData:
+              $ref: "#/components/schemas/SerializedData"
+            screenPosition:
+              $ref: "#/components/schemas/ScreenPosition"
+            timestamp:
+              type: number
+    DragEndMessage:
+      type: object
+      required: [type, instanceId, sourceTabId, payload]
+      properties:
+        type:
+          type: string
+          enum: [DRAG_END]
+        instanceId:
+          type: string
+        sourceTabId:
+          type: string
+        payload:
+          type: object
+          required: [serializedData, timestamp]
+          properties:
+            serializedData:
+              $ref: "#/components/schemas/SerializedData"
+            timestamp:
+              type: number
+    DragEnterTabMessage:
+      type: object
+      required: [type, instanceId, sourceTabId, targetTabId, payload]
+      properties:
+        type:
+          type: string
+          enum: [DRAG_ENTER_TAB]
+        instanceId:
+          type: string
+        sourceTabId:
+          type: string
+        targetTabId:
+          type: string
+        payload:
+          type: object
+          required: [serializedData, timestamp]
+          properties:
+            serializedData:
+              $ref: "#/components/schemas/SerializedData"
+            timestamp:
+              type: number
+    DragLeaveTabMessage:
+      type: object
+      required: [type, instanceId, sourceTabId, targetTabId, payload]
+      properties:
+        type:
+          type: string
+          enum: [DRAG_LEAVE_TAB]
+        instanceId:
+          type: string
+        sourceTabId:
+          type: string
+        targetTabId:
+          type: string
+        payload:
+          type: object
+          required: [serializedData, timestamp]
+          properties:
+            serializedData:
+              $ref: "#/components/schemas/SerializedData"
+            timestamp:
+              type: number
+    DragDropMessage:
+      type: object
+      required: [type, instanceId, sourceTabId, targetTabId, payload]
+      properties:
+        type:
+          type: string
+          enum: [DRAG_DROP]
+        instanceId:
+          type: string
+        sourceTabId:
+          type: string
+        targetTabId:
+          type: string
+        payload:
+          type: object
+          required: [serializedData, timestamp]
+          properties:
+            serializedData:
+              $ref: "#/components/schemas/SerializedData"
+            timestamp:
+              type: number
+    DragAbortMessage:
+      type: object
+      required: [type, instanceId, sourceTabId, payload]
+      properties:
+        type:
+          type: string
+          enum: [DRAG_ABORT]
+        instanceId:
+          type: string
+        sourceTabId:
+          type: string
+        payload:
+          type: object
+          required: [serializedData, timestamp]
+          properties:
+            serializedData:
+              $ref: "#/components/schemas/SerializedData"
+            timestamp:
+              type: number
+    HeartbeatMessage:
+      type: object
+      required: [type, instanceId, sourceTabId, payload]
+      properties:
+        type:
+          type: string
+          enum: [HEARTBEAT]
+        instanceId:
+          type: string
+        sourceTabId:
+          type: string
+        payload:
+          type: object
+          required: [timestamp]
+          properties:
+            timestamp:
+              type: number

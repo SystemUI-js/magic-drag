@@ -9,6 +9,7 @@ export {
   type MagicDragEventMap,
   type MagicDragManagerOptions,
   type MagicDragMessage,
+  type MagicDragCoordinator,
   type MagicDragMessagePayload,
   type MagicDragOptions,
   type PreviewInfo,
