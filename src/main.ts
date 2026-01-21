@@ -33,7 +33,7 @@ class DemoCard extends MagicDrag<CardData> {
     this.applyStyles()
   }
 
-  protected getClassName(): string {
+  public getClassName(): string {
     return 'DemoCard'
   }
 

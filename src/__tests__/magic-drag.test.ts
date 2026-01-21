@@ -78,7 +78,7 @@ interface TestCardData {
 }
 
 class TestCard extends MagicDrag<TestCardData> {
-  static onEnterTab = jest.fn()
+  static readonly onEnterTab = jest.fn()
 
   private title: string
   private content: string
@@ -416,7 +416,7 @@ describe('MagicDrag', () => {
 
   it('should allow missing optional extensions without errors', () => {
     class MinimalCard extends MagicDrag<TestCardData> {
-      static channelName = 'minimal-card-channel'
+      static readonly channelName = 'minimal-card-channel'
 
       getClassName(): string {
         return 'MinimalCard'

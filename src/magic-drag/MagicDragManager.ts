@@ -644,29 +644,27 @@ export class MagicDragManager {
   }
 
   private handleExternalDragEnterTab(message: MagicDragMessage): void {
-    if (message.sourceTabId === this.dragState.sourceTabId) {
-      const serializedData = message.payload.serializedData
-      const className = serializedData?.className ?? null
-      const Constructor = className ? this.classRegistry.get(className) : null
-      if (!Constructor && className) {
-        console.warn(`[MagicDragManager] Unknown class: ${className}`)
-      }
+    const serializedData = message.payload.serializedData
+    const className = serializedData?.className ?? null
+    const Constructor = className ? this.classRegistry.get(className) : null
+    if (!Constructor && className) {
+      console.warn(`[MagicDragManager] Unknown class: ${className}`)
+    }
 
-      if (Constructor?.onEnterTab && serializedData) {
-        Constructor.onEnterTab(message.payload)
-      }
+    if (Constructor?.onEnterTab && serializedData) {
+      Constructor.onEnterTab(message.payload)
+    }
 
-      this.dragState.activeTabId = message.targetTabId ?? this.tabId
-      if (
-        !this.previewInfo &&
-        this.dragState.serializedData &&
-        this.dragState.lastScreenPosition
-      ) {
-        this.createPreview(
-          this.dragState.lastScreenPosition,
-          this.dragState.serializedData
-        )
-      }
+    this.dragState.activeTabId = message.targetTabId ?? this.tabId
+    if (
+      !this.previewInfo &&
+      this.dragState.serializedData &&
+      this.dragState.lastScreenPosition
+    ) {
+      this.createPreview(
+        this.dragState.lastScreenPosition,
+        this.dragState.serializedData
+      )
     }
   }
 
