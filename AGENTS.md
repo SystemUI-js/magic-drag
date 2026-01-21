@@ -170,6 +170,8 @@ yarn format       # 代码格式化
 
 ## Active Technologies
 - TypeScript ~5.6.3 + @system-ui-js/multi-drag, @system-ui-js/development-base, BroadcastChannel API (001-manager-dispatch)
+- TypeScript ~5.6.3 + @system-ui-js/multi-drag, BroadcastChannel API, @system-ui-js/development-base (002-magicdrag-refactor)
+- TypeScript 5.6.3 + @system-ui-js/multi-drag, BroadcastChannel API, @system-ui-js/development-base (002-magicdrag-refactor)
 
 ## Recent Changes
 - 001-manager-dispatch: Added TypeScript ~5.6.3 + @system-ui-js/multi-drag, @system-ui-js/development-base, BroadcastChannel API
