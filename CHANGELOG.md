@@ -12,6 +12,10 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 - 新增跨 Tab 回调与同类实例广播测试覆盖
 - 支持按通道名注册事件监听器，并提供全局事件分发接口
 - MagicDrag 子类可通过静态 channelName 指定跨标签页通信通道
+- 完善 demo 事件日志面板，展示 MagicDrag 基类方法调用与参数摘要
+- demo 支持跨 Tab 实例化卡片并同步预览状态
+- demo 实现卡片跨 Tab 拖拽完成后的源 Tab 自动销毁机制
+- demo 新增 UUID 唯一标识用于跨 Tab 卡片关联
 
 ### Changed
 - Manager 按 className/channelName 管理注册表并拒绝通道冲突
