@@ -640,9 +640,16 @@ const handleDragDrop = (
   sendDestroySignal(serialized.instanceId, sourceTabId)
 }
 
-const handleDragEndOrAbort = (serialized: SerializedData<CardData>): void => {
+const handleDragEndOrAbort = (
+  serialized: SerializedData<CardData>,
+  sourceTabId: string
+): void => {
   const runtime = runtimeCards.get(serialized.instanceId)
   if (!runtime) {
+    return
+  }
+
+  if (sourceTabId === manager.tabId) {
     return
   }
 
@@ -691,7 +698,7 @@ const handleExternalMessage = (message: MagicDragMessage): void => {
     }
     case MagicDragMessageType.DRAG_END:
     case MagicDragMessageType.DRAG_ABORT: {
-      handleDragEndOrAbort(serialized)
+      handleDragEndOrAbort(serialized, message.sourceTabId)
       break
     }
   }
