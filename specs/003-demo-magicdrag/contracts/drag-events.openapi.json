@@ -1,0 +1,280 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Demo MagicDrag Events",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/drag/start": {
+      "post": {
+        "summary": "Broadcast drag start",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/DragStart" }
+            }
+          }
+        },
+        "responses": {
+          "204": { "description": "Broadcast accepted" }
+        }
+      }
+    },
+    "/drag/move": {
+      "post": {
+        "summary": "Broadcast drag move",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/DragMove" }
+            }
+          }
+        },
+        "responses": {
+          "204": { "description": "Broadcast accepted" }
+        }
+      }
+    },
+    "/drag/enter": {
+      "post": {
+        "summary": "Broadcast drag enter",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/DragEnter" }
+            }
+          }
+        },
+        "responses": {
+          "204": { "description": "Broadcast accepted" }
+        }
+      }
+    },
+    "/drag/leave": {
+      "post": {
+        "summary": "Broadcast drag leave",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/DragLeave" }
+            }
+          }
+        },
+        "responses": {
+          "204": { "description": "Broadcast accepted" }
+        }
+      }
+    },
+    "/drag/end": {
+      "post": {
+        "summary": "Broadcast drag end",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/DragEnd" }
+            }
+          }
+        },
+        "responses": {
+          "204": { "description": "Broadcast accepted" }
+        }
+      }
+    },
+    "/drag/drop": {
+      "post": {
+        "summary": "Broadcast drag drop",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/DragDrop" }
+            }
+          }
+        },
+        "responses": {
+          "204": { "description": "Broadcast accepted" }
+        }
+      }
+    },
+    "/drag/abort": {
+      "post": {
+        "summary": "Broadcast drag abort",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/DragAbort" }
+            }
+          }
+        },
+        "responses": {
+          "204": { "description": "Broadcast accepted" }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ScreenPosition": {
+        "type": "object",
+        "properties": {
+          "screenX": { "type": "number" },
+          "screenY": { "type": "number" }
+        },
+        "required": ["screenX", "screenY"]
+      },
+      "DragOffset": {
+        "type": "object",
+        "properties": {
+          "x": { "type": "number" },
+          "y": { "type": "number" }
+        },
+        "required": ["x", "y"]
+      },
+      "SerializedData": {
+        "type": "object",
+        "properties": {
+          "instanceId": { "type": "string" },
+          "className": { "type": "string" },
+          "pose": { "type": "object" },
+          "customData": { "type": "object" },
+          "dragOffset": { "$ref": "#/components/schemas/DragOffset" }
+        },
+        "required": ["instanceId", "className", "pose", "customData"]
+      },
+      "MagicDragMessagePayload": {
+        "type": "object",
+        "properties": {
+          "serializedData": { "$ref": "#/components/schemas/SerializedData" },
+          "screenPosition": { "$ref": "#/components/schemas/ScreenPosition" },
+          "timestamp": { "type": "number" }
+        },
+        "required": ["timestamp"]
+      },
+      "DragStartPayload": {
+        "allOf": [
+          { "$ref": "#/components/schemas/MagicDragMessagePayload" },
+          { "type": "object", "required": ["serializedData"] }
+        ]
+      },
+      "DragMovePayload": {
+        "allOf": [
+          { "$ref": "#/components/schemas/MagicDragMessagePayload" },
+          { "type": "object", "required": ["serializedData", "screenPosition"] }
+        ]
+      },
+      "DragEnterPayload": {
+        "allOf": [
+          { "$ref": "#/components/schemas/MagicDragMessagePayload" }
+        ]
+      },
+      "DragLeavePayload": {
+        "allOf": [
+          { "$ref": "#/components/schemas/MagicDragMessagePayload" }
+        ]
+      },
+      "DragEndPayload": {
+        "allOf": [
+          { "$ref": "#/components/schemas/MagicDragMessagePayload" },
+          { "type": "object", "required": ["serializedData"] }
+        ]
+      },
+      "DragDropPayload": {
+        "allOf": [
+          { "$ref": "#/components/schemas/MagicDragMessagePayload" },
+          { "type": "object", "required": ["serializedData"] }
+        ]
+      },
+      "DragAbortPayload": {
+        "allOf": [
+          { "$ref": "#/components/schemas/MagicDragMessagePayload" },
+          { "type": "object", "required": ["serializedData"] }
+        ]
+      },
+      "DragStart": {
+        "type": "object",
+        "properties": {
+          "type": { "type": "string", "enum": ["magic_drag_start"] },
+          "instanceId": { "type": "string" },
+          "sourceTabId": { "type": "string" },
+          "payload": { "$ref": "#/components/schemas/DragStartPayload" }
+        },
+        "required": ["type", "instanceId", "sourceTabId", "payload"]
+      },
+      "DragMove": {
+        "type": "object",
+        "properties": {
+          "type": { "type": "string", "enum": ["magic_drag_move"] },
+          "instanceId": { "type": "string" },
+          "sourceTabId": { "type": "string" },
+          "payload": { "$ref": "#/components/schemas/DragMovePayload" }
+        },
+        "required": ["type", "instanceId", "sourceTabId", "payload"]
+      },
+      "DragEnter": {
+        "type": "object",
+        "properties": {
+          "type": { "type": "string", "enum": ["magic_drag_enter_tab"] },
+          "instanceId": { "type": "string" },
+          "sourceTabId": { "type": "string" },
+          "targetTabId": { "type": "string" },
+          "payload": { "$ref": "#/components/schemas/DragEnterPayload" }
+        },
+        "required": ["type", "instanceId", "sourceTabId", "payload"]
+      },
+      "DragLeave": {
+        "type": "object",
+        "properties": {
+          "type": { "type": "string", "enum": ["magic_drag_leave_tab"] },
+          "instanceId": { "type": "string" },
+          "sourceTabId": { "type": "string" },
+          "targetTabId": { "type": "string" },
+          "payload": { "$ref": "#/components/schemas/DragLeavePayload" }
+        },
+        "required": ["type", "instanceId", "sourceTabId", "payload"]
+      },
+      "DragEnd": {
+        "type": "object",
+        "properties": {
+          "type": { "type": "string", "enum": ["magic_drag_end"] },
+          "instanceId": { "type": "string" },
+          "sourceTabId": { "type": "string" },
+          "payload": { "$ref": "#/components/schemas/DragEndPayload" }
+        },
+        "required": ["type", "instanceId", "sourceTabId", "payload"]
+      },
+      "DragDrop": {
+        "type": "object",
+        "properties": {
+          "type": { "type": "string", "enum": ["magic_drag_drop"] },
+          "instanceId": { "type": "string" },
+          "sourceTabId": { "type": "string" },
+          "targetTabId": { "type": "string" },
+          "payload": { "$ref": "#/components/schemas/DragDropPayload" }
+        },
+        "required": [
+          "type",
+          "instanceId",
+          "sourceTabId",
+          "targetTabId",
+          "payload"
+        ]
+      },
+      "DragAbort": {
+        "type": "object",
+        "properties": {
+          "type": { "type": "string", "enum": ["magic_drag_abort"] },
+          "instanceId": { "type": "string" },
+          "sourceTabId": { "type": "string" },
+          "payload": { "$ref": "#/components/schemas/DragAbortPayload" }
+        },
+        "required": ["type", "instanceId", "sourceTabId", "payload"]
+      }
+    }
+  }
+}

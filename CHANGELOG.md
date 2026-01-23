@@ -12,6 +12,10 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 - 新增跨 Tab 回调与同类实例广播测试覆盖
 - 支持按通道名注册事件监听器，并提供全局事件分发接口
 - MagicDrag 子类可通过静态 channelName 指定跨标签页通信通道
+- 完善 demo 事件日志面板，展示 MagicDrag 基类方法调用与参数摘要
+- demo 支持跨 Tab 实例化卡片并同步预览状态
+- demo 实现卡片跨 Tab 拖拽完成后的源 Tab 自动销毁机制
+- demo 新增 UUID 唯一标识用于跨 Tab 卡片关联
 
 ### Changed
 - Manager 按 className/channelName 管理注册表并拒绝通道冲突
@@ -30,6 +34,9 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 - 修复跨 Tab 拖拽时 `onEnterTab` 回调不会被调用的问题：移除 `handleExternalDragEnterTab` 中不必要的 `sourceTabId` 守卫检查，因为该消息已通过初始过滤且语义本身就要求目标 Tab 响应进入事件
 - 修复 ESLint 错误：将测试文件中的 `TestCard.onEnterTab` 和 `MinimalCard.channelName` 改为 `readonly`，符合 sonarjs/public-static-readonly 规则
 - 修复 TypeScript 类型错误：将 `DemoCard.getClassName()` 从 `protected` 改为 `public`，以匹配基类中的 `public abstract getClassName()` 声明
+- 修复 ESLint 错误：移除 demo 中未使用的 `tabSessions` 集合，符合 sonarjs/no-unused-collection 规则
+- 修复 ESLint 错误：重构 demo 中的 `handleExternalMessage` 函数，将各消息类型处理逻辑拆分为独立函数，降低认知复杂度从 30 到 15 以下，符合 sonarjs/cognitive-complexity 规则
+- 修复 demo 中同 Tab 拖拽时卡片被意外销毁的问题：`handleDragEndOrAbort` 新增 `sourceTabId` 参数，忽略来自本地 Tab 的消息，避免在本地拖拽结束时错误清理预览实例
 
 ## 0.1.0 - 2025-11-16
 
