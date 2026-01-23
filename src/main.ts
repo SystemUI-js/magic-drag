@@ -28,12 +28,6 @@ interface CardRuntime {
   lastSerialized?: SerializedData<CardData>
 }
 
-interface TabSessionRuntime {
-  tabId: string
-  lastSeenAt: number
-  isSource: boolean
-}
-
 interface EventLogEntry {
   id: string
   tabId: string
@@ -82,20 +76,11 @@ const summarizeSerializedData = (data?: SerializedData<unknown>): string => {
 
 const manager = MagicDragManager.getInstance()
 const runtimeCards = new Map<string, CardRuntime>()
-const tabSessions = new Map<string, TabSessionRuntime>()
 const eventLogs: EventLogEntry[] = []
 
 let cardContainer: HTMLDivElement | null = null
 let logList: HTMLUListElement | null = null
 let logStats: HTMLSpanElement | null = null
-
-const updateTabSession = (tabId: string, isSource: boolean): void => {
-  tabSessions.set(tabId, {
-    tabId,
-    lastSeenAt: Date.now(),
-    isSource
-  })
-}
 
 const updateLogStats = (): void => {
   if (!logStats) {
@@ -559,104 +544,154 @@ const logMessage = (message: MagicDragMessage): void => {
   })
 }
 
+const handleDragStart = (
+  serialized: SerializedData<CardData>,
+  sourceTabId: string
+): void => {
+  if (sourceTabId === manager.tabId) {
+    return
+  }
+
+  const runtime = ensureExternalCard(serialized, sourceTabId)
+  if (!runtime) {
+    return
+  }
+  runtime.currentTabId = manager.tabId
+  registerRuntimeCard(runtime, 'preview')
+}
+
+const handleDragMove = (
+  serialized: SerializedData<CardData>,
+  sourceTabId: string,
+  screenPosition: ScreenPosition | undefined
+): void => {
+  if (sourceTabId === manager.tabId) {
+    return
+  }
+
+  const runtime = ensureExternalCard(serialized, sourceTabId)
+  if (!runtime) {
+    return
+  }
+  registerRuntimeCard(runtime, 'preview')
+  updateCardPosition(runtime.element, screenPosition, serialized.dragOffset)
+}
+
+const handleDragEnterTab = (
+  serialized: SerializedData<CardData>,
+  sourceTabId: string
+): void => {
+  if (sourceTabId === manager.tabId) {
+    return
+  }
+
+  const runtime = ensureExternalCard(serialized, sourceTabId)
+  if (!runtime) {
+    return
+  }
+  registerRuntimeCard(runtime, 'preview')
+  updateCardPosition(
+    runtime.element,
+    getLastScreenPosition(),
+    serialized.dragOffset
+  )
+}
+
+const handleDragLeaveTab = (
+  serialized: SerializedData<CardData>,
+  sourceTabId: string
+): void => {
+  if (sourceTabId === manager.tabId) {
+    return
+  }
+
+  const runtime = ensureExternalCard(serialized, sourceTabId)
+  if (!runtime) {
+    return
+  }
+  registerRuntimeCard(runtime, 'dragging')
+  updateCardPosition(
+    runtime.element,
+    getLastScreenPosition(),
+    serialized.dragOffset
+  )
+}
+
+const handleDragDrop = (
+  serialized: SerializedData<CardData>,
+  sourceTabId: string,
+  targetTabId: string | undefined,
+  screenPosition: ScreenPosition | undefined
+): void => {
+  if (!targetTabId || targetTabId !== manager.tabId) {
+    return
+  }
+
+  const runtime = ensureExternalCard(serialized, sourceTabId)
+  if (!runtime) {
+    return
+  }
+  registerRuntimeCard(runtime, 'dropped')
+  updateCardPosition(
+    runtime.element,
+    screenPosition ?? getLastScreenPosition(),
+    serialized.dragOffset
+  )
+  sendDestroySignal(serialized.instanceId, sourceTabId)
+}
+
+const handleDragEndOrAbort = (serialized: SerializedData<CardData>): void => {
+  const runtime = runtimeCards.get(serialized.instanceId)
+  if (!runtime) {
+    return
+  }
+
+  if (runtime.status === 'preview' || runtime.status === 'dragging') {
+    removeRuntimeCard(serialized.instanceId)
+  }
+}
+
 const handleExternalMessage = (message: MagicDragMessage): void => {
-  updateTabSession(message.sourceTabId, message.sourceTabId === manager.tabId)
   logMessage(message)
 
   const serialized = getSerializedCard(message.payload)
+  if (!serialized) {
+    return
+  }
 
   switch (message.type) {
     case MagicDragMessageType.DRAG_START: {
-      if (message.sourceTabId === manager.tabId || !serialized) {
-        return
-      }
-      const runtime = ensureExternalCard(serialized, message.sourceTabId)
-      if (!runtime) {
-        return
-      }
-      runtime.currentTabId = manager.tabId
-      registerRuntimeCard(runtime, 'preview')
+      handleDragStart(serialized, message.sourceTabId)
       break
     }
     case MagicDragMessageType.DRAG_MOVE: {
-      if (message.sourceTabId === manager.tabId || !serialized) {
-        return
-      }
-      const runtime = ensureExternalCard(serialized, message.sourceTabId)
-      if (!runtime) {
-        return
-      }
-      registerRuntimeCard(runtime, 'preview')
-      updateCardPosition(
-        runtime.element,
-        message.payload.screenPosition,
-        serialized.dragOffset
+      handleDragMove(
+        serialized,
+        message.sourceTabId,
+        message.payload.screenPosition
       )
       break
     }
     case MagicDragMessageType.DRAG_ENTER_TAB: {
-      if (message.sourceTabId === manager.tabId || !serialized) {
-        return
-      }
-      const runtime = ensureExternalCard(serialized, message.sourceTabId)
-      if (!runtime) {
-        return
-      }
-      registerRuntimeCard(runtime, 'preview')
-      updateCardPosition(
-        runtime.element,
-        getLastScreenPosition() ?? message.payload.screenPosition,
-        serialized.dragOffset
-      )
+      handleDragEnterTab(serialized, message.sourceTabId)
       break
     }
     case MagicDragMessageType.DRAG_LEAVE_TAB: {
-      if (message.sourceTabId === manager.tabId || !serialized) {
-        return
-      }
-      const runtime = ensureExternalCard(serialized, message.sourceTabId)
-      if (!runtime) {
-        return
-      }
-      registerRuntimeCard(runtime, 'dragging')
-      updateCardPosition(
-        runtime.element,
-        getLastScreenPosition() ?? message.payload.screenPosition,
-        serialized.dragOffset
-      )
+      handleDragLeaveTab(serialized, message.sourceTabId)
       break
     }
     case MagicDragMessageType.DRAG_DROP: {
-      if (!serialized) {
-        return
-      }
-      if (message.targetTabId === manager.tabId) {
-        const runtime = ensureExternalCard(serialized, message.sourceTabId)
-        if (!runtime) {
-          return
-        }
-        registerRuntimeCard(runtime, 'dropped')
-        updateCardPosition(
-          runtime.element,
-          message.payload.screenPosition ?? getLastScreenPosition(),
-          serialized.dragOffset
-        )
-        sendDestroySignal(serialized.instanceId, message.sourceTabId)
-      }
+      handleDragDrop(
+        serialized,
+        message.sourceTabId,
+        message.targetTabId,
+        message.payload.screenPosition
+      )
       break
     }
     case MagicDragMessageType.DRAG_END:
     case MagicDragMessageType.DRAG_ABORT: {
-      if (!serialized) {
-        return
-      }
-      const runtime = runtimeCards.get(serialized.instanceId)
-      if (!runtime) {
-        return
-      }
-      if (runtime.status === 'preview' || runtime.status === 'dragging') {
-        removeRuntimeCard(serialized.instanceId)
-      }
+      handleDragEndOrAbort(serialized)
       break
     }
   }

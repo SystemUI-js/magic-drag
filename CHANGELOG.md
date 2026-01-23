@@ -34,6 +34,8 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 - 修复跨 Tab 拖拽时 `onEnterTab` 回调不会被调用的问题：移除 `handleExternalDragEnterTab` 中不必要的 `sourceTabId` 守卫检查，因为该消息已通过初始过滤且语义本身就要求目标 Tab 响应进入事件
 - 修复 ESLint 错误：将测试文件中的 `TestCard.onEnterTab` 和 `MinimalCard.channelName` 改为 `readonly`，符合 sonarjs/public-static-readonly 规则
 - 修复 TypeScript 类型错误：将 `DemoCard.getClassName()` 从 `protected` 改为 `public`，以匹配基类中的 `public abstract getClassName()` 声明
+- 修复 ESLint 错误：移除 demo 中未使用的 `tabSessions` 集合，符合 sonarjs/no-unused-collection 规则
+- 修复 ESLint 错误：重构 demo 中的 `handleExternalMessage` 函数，将各消息类型处理逻辑拆分为独立函数，降低认知复杂度从 30 到 15 以下，符合 sonarjs/cognitive-complexity 规则
 
 ## 0.1.0 - 2025-11-16
 
