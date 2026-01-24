@@ -174,6 +174,8 @@ yarn format       # 代码格式化
 - TypeScript 5.6.3 + @system-ui-js/multi-drag, BroadcastChannel API, @system-ui-js/development-base (002-magicdrag-refactor)
 - TypeScript 5.6.3 + `@system-ui-js/multi-drag`, BroadcastChannel API, `@system-ui-js/development-base` (003-demo-magicdrag)
 - N/A（内存态） (003-demo-magicdrag)
+- TypeScript 5.6.3 + `@system-ui-js/multi-drag`, `@system-ui-js/development-base`, BroadcastChannel API, Vite (004-fix-demo-card-cleanup)
+- N/A (in-memory DOM/runtime state only) (004-fix-demo-card-cleanup)
 
 ## Recent Changes
 - 001-manager-dispatch: Added TypeScript ~5.6.3 + @system-ui-js/multi-drag, @system-ui-js/development-base, BroadcastChannel API

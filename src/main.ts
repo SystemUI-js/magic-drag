@@ -74,8 +74,15 @@ const summarizeSerializedData = (data?: SerializedData<unknown>): string => {
   return `title=${title ?? 'n/a'} color=${color ?? 'n/a'} id=${data.instanceId}`
 }
 
-const manager = MagicDragManager.getInstance()
+const previewContainer = document.createElement('div')
+previewContainer.className = 'demo-preview-layer'
+previewContainer.style.visibility = 'hidden'
+previewContainer.style.pointerEvents = 'none'
+;(document.body ?? document.documentElement).appendChild(previewContainer)
+
+const manager = MagicDragManager.getInstance({ previewContainer })
 const runtimeCards = new Map<string, CardRuntime>()
+const cleanupTimers = new Map<string, ReturnType<typeof setTimeout>>()
 const eventLogs: EventLogEntry[] = []
 
 let cardContainer: HTMLDivElement | null = null
@@ -115,6 +122,10 @@ const renderLogs = (): void => {
   })
 
   updateLogStats()
+}
+
+const setPreviewVisibility = (visible: boolean): void => {
+  previewContainer.style.visibility = visible ? 'visible' : 'hidden'
 }
 
 const pushLog = (
@@ -217,6 +228,88 @@ const removeRuntimeCard = (externalId: string): void => {
   runtimeCards.delete(externalId)
 }
 
+const getRuntimeByInstanceId = (instanceId: string): CardRuntime | null => {
+  const directMatch = runtimeCards.get(instanceId)
+  if (directMatch) {
+    return directMatch
+  }
+
+  for (const runtime of runtimeCards.values()) {
+    if (runtime.localId === instanceId) {
+      return runtime
+    }
+  }
+
+  return null
+}
+
+const clearCleanupTimer = (instanceId: string): void => {
+  const timer = cleanupTimers.get(instanceId)
+  if (timer) {
+    clearTimeout(timer)
+    cleanupTimers.delete(instanceId)
+  }
+}
+
+const removeTemporaryBodyCards = (instanceId: string): void => {
+  if (!cardContainer) {
+    return
+  }
+
+  const candidates = Array.from(
+    document.body.querySelectorAll<HTMLElement>('.demo-card')
+  )
+  const temporaryCards = candidates.filter(
+    (element) =>
+      !cardContainer?.contains(element) &&
+      (element.dataset.instanceId === instanceId ||
+        element.dataset.runtimeId === instanceId)
+  )
+
+  for (const element of temporaryCards) {
+    const runtimeId = element.dataset.runtimeId
+    const instance = runtimeId ? manager.getInstance(runtimeId) : undefined
+    if (instance) {
+      instance.destroy()
+      continue
+    }
+
+    element.remove()
+  }
+}
+
+const scheduleDemoCardCleanup = (
+  instanceId: string,
+  options: {
+    removeRuntime: boolean
+    delayMs?: number
+  }
+): void => {
+  clearCleanupTimer(instanceId)
+
+  const performCleanup = () => {
+    clearCleanupTimer(instanceId)
+
+    if (options.removeRuntime) {
+      const runtime = getRuntimeByInstanceId(instanceId)
+      if (runtime) {
+        removeRuntimeCard(runtime.externalId)
+      }
+    }
+
+    removeTemporaryBodyCards(instanceId)
+  }
+
+  const delayMs = options.delayMs ?? 0
+  if (delayMs > 0) {
+    const timer = setTimeout(performCleanup, delayMs)
+    cleanupTimers.set(instanceId, timer)
+    return
+  }
+
+  performCleanup()
+}
+
 class DemoCard extends MagicDrag<CardData> {
   private title: string
   private content: string
@@ -234,6 +327,8 @@ class DemoCard extends MagicDrag<CardData> {
     color: string
   ) {
     super(element)
+    this.element.dataset.runtimeId = this.instanceId
+    this.element.dataset.instanceId = this.instanceId
     this.title = title
     this.content = content
     this.color = color
@@ -247,6 +342,7 @@ class DemoCard extends MagicDrag<CardData> {
 
   public setExternalInstanceId(id: string): void {
     this.externalInstanceId = id
+    this.element.dataset.instanceId = id
   }
 
   public getExternalInstanceId(): string {
@@ -262,6 +358,10 @@ class DemoCard extends MagicDrag<CardData> {
   }
 
   deserialize(data: SerializedData<CardData>): void {
+    if (!this.externalInstanceId) {
+      this.externalInstanceId = data.instanceId
+      this.element.dataset.instanceId = data.instanceId
+    }
     this.title = data.customData.title
     this.content = data.customData.content
     this.color = data.customData.color
@@ -318,6 +418,9 @@ class DemoCard extends MagicDrag<CardData> {
     isLeaveTab: boolean
   ): void {
     this.updateRuntimeStatus(isLeaveTab ? 'preview' : 'dropped')
+    scheduleDemoCardCleanup(this.getExternalInstanceId(), {
+      removeRuntime: false
+    })
     pushLog({
       instanceId: this.getExternalInstanceId(),
       method: 'onDragEnd',
@@ -383,6 +486,10 @@ class DemoCard extends MagicDrag<CardData> {
   protected onAbort(_screenPosition: ScreenPosition): void {
     this.goBackToDragStart()
     this.updateRuntimeStatus('idle')
+    scheduleDemoCardCleanup(this.getExternalInstanceId(), {
+      removeRuntime: false,
+      delayMs: 300
+    })
     pushLog({
       instanceId: this.getExternalInstanceId(),
       method: 'onAbort',
@@ -452,7 +559,7 @@ demoChannel?.addEventListener('message', (event) => {
     summary: `source=${event.data.sourceTabId.slice(0, 6)}`
   })
 
-  removeRuntimeCard(event.data.instanceId)
+  scheduleDemoCardCleanup(event.data.instanceId, { removeRuntime: true })
 })
 
 const getSerializedCard = (
@@ -483,7 +590,8 @@ const getSerializedCard = (
 
 const ensureExternalCard = (
   serialized: SerializedData<CardData>,
-  sourceTabId: string
+  sourceTabId: string,
+  createIfMissing: boolean = true
 ): CardRuntime | null => {
   if (!cardContainer) {
     return null
@@ -494,6 +602,10 @@ const ensureExternalCard = (
     existing.lastSerialized = serialized
     existing.lastUpdatedAt = Date.now()
     return existing
+  }
+
+  if (!createIfMissing) {
+    return null
   }
 
   const element = document.createElement('div')
@@ -552,7 +664,8 @@ const handleDragStart = (
     return
   }
 
-  const runtime = ensureExternalCard(serialized, sourceTabId)
+  setPreviewVisibility(false)
+  const runtime = ensureExternalCard(serialized, sourceTabId, false)
   if (!runtime) {
     return
   }
@@ -569,7 +682,8 @@ const handleDragMove = (
     return
   }
 
-  const runtime = ensureExternalCard(serialized, sourceTabId)
+  setPreviewVisibility(false)
+  const runtime = ensureExternalCard(serialized, sourceTabId, false)
   if (!runtime) {
     return
   }
@@ -590,6 +704,7 @@ const handleDragEnterTab = (
     return
   }
   registerRuntimeCard(runtime, 'preview')
+  setPreviewVisibility(true)
   updateCardPosition(
     runtime.element,
     getLastScreenPosition(),
@@ -605,11 +720,12 @@ const handleDragLeaveTab = (
     return
   }
 
-  const runtime = ensureExternalCard(serialized, sourceTabId)
+  const runtime = ensureExternalCard(serialized, sourceTabId, false)
   if (!runtime) {
     return
   }
   registerRuntimeCard(runtime, 'dragging')
+  setPreviewVisibility(false)
   updateCardPosition(
     runtime.element,
     getLastScreenPosition(),
@@ -631,31 +747,46 @@ const handleDragDrop = (
   if (!runtime) {
     return
   }
+
+  const bodyInstance = manager.getInstance(serialized.instanceId)
+  if (bodyInstance && bodyInstance !== runtime.instance) {
+    bodyInstance.destroy()
+  }
   registerRuntimeCard(runtime, 'dropped')
+  setPreviewVisibility(false)
   updateCardPosition(
     runtime.element,
     screenPosition ?? getLastScreenPosition(),
     serialized.dragOffset
   )
+  // Defer cleanup so manager's internal drop handler finishes creating previews.
+  queueMicrotask(() => {
+    scheduleDemoCardCleanup(serialized.instanceId, { removeRuntime: false })
+  })
   sendDestroySignal(serialized.instanceId, sourceTabId)
 }
 
 const handleDragEndOrAbort = (
   serialized: SerializedData<CardData>,
-  sourceTabId: string
+  sourceTabId: string,
+  eventType: MagicDragMessageType.DRAG_END | MagicDragMessageType.DRAG_ABORT
 ): void => {
-  const runtime = runtimeCards.get(serialized.instanceId)
-  if (!runtime) {
-    return
-  }
+  const runtime = getRuntimeByInstanceId(serialized.instanceId)
+  const isSourceTab = sourceTabId === manager.tabId
+  const shouldRemoveRuntime =
+    !isSourceTab &&
+    !!runtime &&
+    (runtime.status === 'preview' || runtime.status === 'dragging')
+  const delayMs =
+    eventType === MagicDragMessageType.DRAG_ABORT ? 300 : undefined
 
-  if (sourceTabId === manager.tabId) {
-    return
+  if (!isSourceTab) {
+    setPreviewVisibility(false)
   }
-
-  if (runtime.status === 'preview' || runtime.status === 'dragging') {
-    removeRuntimeCard(serialized.instanceId)
-  }
+  scheduleDemoCardCleanup(serialized.instanceId, {
+    removeRuntime: shouldRemoveRuntime,
+    delayMs
+  })
 }
 
 const handleExternalMessage = (message: MagicDragMessage): void => {
@@ -698,7 +829,7 @@ const handleExternalMessage = (message: MagicDragMessage): void => {
     }
     case MagicDragMessageType.DRAG_END:
     case MagicDragMessageType.DRAG_ABORT: {
-      handleDragEndOrAbort(serialized, message.sourceTabId)
+      handleDragEndOrAbort(serialized, message.sourceTabId, message.type)
       break
     }
   }
